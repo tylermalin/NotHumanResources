@@ -13,7 +13,7 @@ import {
 } from "./trust";
 import { getAction } from "./tools";
 import { providerForAction, resolveCredential } from "./connections";
-import { createAgent, revokeAgent } from "./neus-agents";
+import { createAgent, resolveAgent, revokeAgent } from "./neus-agents";
 import type { DB, InstalledHarness, Run, RunStep } from "./types";
 
 /**
@@ -61,7 +61,7 @@ export async function installHarness(
   // with the local identity and log it.
   if (auth.walletAddress) {
     try {
-      harness.neusAgent = await createAgent({
+      const result = await createAgent({
         agentId: `nhr-${spec.slug}`,
         controllerWallet: auth.walletAddress,
         agentLabel: spec.name,
@@ -70,6 +70,14 @@ export async function installHarness(
         preset: spec.delegationPreset,
         expiresAt: delegation.expiresAt,
       });
+      if (result.status === "created") {
+        harness.neusAgent = result.agent;
+      } else {
+        harness.neusAgentPending = {
+          hostedVerifyUrl: result.hostedVerifyUrl,
+          agentWallet: result.agentWallet,
+        };
+      }
     } catch (err) {
       console.error("[NHR] neus_agent_create failed:", err);
     }
@@ -77,6 +85,27 @@ export async function installHarness(
 
   db.harnesses.push(harness);
   await writeDB(db);
+  return harness;
+}
+
+/**
+ * Finish a NEUS agent whose creation was pending on the hosted flow: check
+ * readiness and, once the controller has signed identity + delegation on NEUS,
+ * move it from pending to a live neusAgent. Idempotent.
+ */
+export async function resolveHarnessAgent(
+  harnessId: string
+): Promise<InstalledHarness> {
+  const db = await readDB();
+  const harness = db.harnesses.find((h) => h.id === harnessId);
+  if (!harness) throw new Error("Harness not installed");
+  if (harness.neusAgent || !harness.neusAgentPending) return harness;
+  const ref = await resolveAgent(harness.neusAgentPending.agentWallet);
+  if (ref) {
+    harness.neusAgent = ref;
+    delete harness.neusAgentPending;
+    await writeDB(db);
+  }
   return harness;
 }
 

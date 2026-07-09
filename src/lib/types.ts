@@ -76,6 +76,12 @@ export interface InstalledHarness {
   authorization?: AgentAuthorization;
   /** The real NEUS agent this harness maps to, when one was created. */
   neusAgent?: NeusAgentRef;
+  /**
+   * Set when NEUS agent creation needs a browser signature the server session
+   * couldn't provide. The controller finishes at hostedVerifyUrl, then we
+   * resolve the agent and move it to neusAgent.
+   */
+  neusAgentPending?: { hostedVerifyUrl: string; agentWallet: string };
 }
 
 /**

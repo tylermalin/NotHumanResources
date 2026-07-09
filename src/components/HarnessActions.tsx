@@ -3,6 +3,61 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { trustedFetch } from "./neus/session";
 
+/**
+ * Drives the hosted NEUS agent-setup fallback: opens the hosted verify URL for
+ * the controller to sign identity + delegation, then syncs the finished agent
+ * back into the harness.
+ */
+export function FinishNeusSetup({
+  harnessId,
+  hostedVerifyUrl,
+}: {
+  harnessId: string;
+  hostedVerifyUrl: string;
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+
+  function openHosted() {
+    const url = new URL(hostedVerifyUrl);
+    url.searchParams.set("returnUrl", window.location.href);
+    window.open(url.toString(), "_blank", "noopener");
+    setNote("Finish signing on NEUS, then Sync.");
+  }
+
+  async function sync() {
+    setBusy(true);
+    setNote(null);
+    const res = await trustedFetch(`/api/harnesses/${harnessId}/sync-agent`, {
+      method: "POST",
+    });
+    const body = (await res.json().catch(() => ({}))) as { ready?: boolean };
+    setBusy(false);
+    if (body.ready) router.refresh();
+    else setNote("Not on NEUS yet — finish signing, then Sync again.");
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        onClick={openHosted}
+        className="rounded-sm border border-accent/40 bg-ghost px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-accent hover:bg-accent/20"
+      >
+        Finish setup on NEUS →
+      </button>
+      <button
+        onClick={sync}
+        disabled={busy}
+        className="rounded-sm border border-hairline px-2.5 py-1 text-xs font-medium uppercase tracking-wide hover:bg-inset disabled:opacity-40"
+      >
+        {busy ? "Syncing…" : "Sync"}
+      </button>
+      {note && <span className="text-[11px] text-muted">{note}</span>}
+    </div>
+  );
+}
+
 export function RunTaskButton({
   harnessId,
   taskId,

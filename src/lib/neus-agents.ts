@@ -76,9 +76,32 @@ function centsToMaxSpend(cents: number): string {
   return String(Math.round(cents * 10000));
 }
 
+/** Pull an identity+delegation ref out of a create/link response's proofs. */
+function refFromProofs(
+  agentId: string,
+  agentWallet: string,
+  proofs: Record<string, unknown>
+): NeusAgentRef | null {
+  const identity = (proofs.identity ?? {}) as { qHash?: string };
+  const delegation = (proofs.delegation ?? {}) as { qHash?: string };
+  if (!identity.qHash || !delegation.qHash) return null;
+  return {
+    agentId,
+    agentWallet,
+    identityQHash: identity.qHash,
+    delegationQHash: delegation.qHash,
+  };
+}
+
+export type CreateAgentResult =
+  | { status: "created"; agent: NeusAgentRef }
+  | { status: "pending"; hostedVerifyUrl: string; agentWallet: string };
+
 /**
- * Create (or update) a NEUS Trusted Agent for a hired harness. Writes the
- * agent-identity + agent-delegation proofs and returns their references.
+ * Create a NEUS Trusted Agent for a hired harness. When the controller is the
+ * signed-in key owner, NEUS auto-signs and returns the proof pair
+ * ("created"). Otherwise it returns a hostedVerifyUrl the controller must open
+ * to sign identity + delegation in the browser ("pending").
  */
 export async function createAgent(input: {
   agentId: string;
@@ -88,7 +111,7 @@ export async function createAgent(input: {
   instructions: string;
   preset: DelegationPreset;
   expiresAt: string; // ISO — the delegation's computed expiry
-}): Promise<NeusAgentRef> {
+}): Promise<CreateAgentResult> {
   const r = await callTool("neus_agent_create", {
     agentId: input.agentId,
     controllerWallet: input.controllerWallet,
@@ -103,29 +126,38 @@ export async function createAgent(input: {
     expiresAt: Math.floor(new Date(input.expiresAt).getTime() / 1000),
   });
   const agent = (r.agent ?? {}) as Record<string, string>;
-  const proofs = (r.proofs ?? {}) as {
-    identity?: { qHash?: string };
+  const agentWallet = agent.agentWallet ?? input.controllerWallet;
+  const ref = refFromProofs(
+    agent.agentId ?? input.agentId,
+    agentWallet,
+    (r.proofs ?? {}) as Record<string, unknown>
+  );
+  if (ref) return { status: "created", agent: ref };
+  const hostedVerifyUrl = r.hostedVerifyUrl as string | undefined;
+  if (hostedVerifyUrl) {
+    return { status: "pending", hostedVerifyUrl, agentWallet };
+  }
+  throw new Error(`neus_agent_create returned no proofs or hosted URL`);
+}
+
+/**
+ * Resolve an agent that was completed via the hosted flow. Checks readiness
+ * with neus_agent_link and returns the proof pair once both identity and
+ * delegation are on file, or null if it isn't ready yet.
+ */
+export async function resolveAgent(
+  agentWallet: string
+): Promise<NeusAgentRef | null> {
+  const r = await callTool("neus_agent_link", { agentWallet });
+  if (r.linked !== true) return null;
+  const identity = (r.proofs ?? {}) as {
+    identity?: { qHash?: string; verifiedVerifiers?: { data?: { agentId?: string } }[] };
     delegation?: { qHash?: string };
   };
-  const identityQHash = proofs.identity?.qHash ?? "";
-  const delegationQHash = proofs.delegation?.qHash ?? "";
-  // NEUS auto-signs when the controller is the signed-in key owner
-  // (status: session_auto_complete). If it returns signatures_required (a step
-  // the session can't complete server-side — e.g. a non-owner controller), no
-  // proofs are issued; treat that as "not created" so we fall back to the local
-  // identity instead of storing an empty NEUS agent. The hosted "finish on
-  // NEUS" flow is where that case gets completed.
-  if (!identityQHash || !delegationQHash) {
-    throw new Error(
-      `neus_agent_create did not complete (status: ${String(r.status)})`
-    );
-  }
-  return {
-    agentId: agent.agentId ?? input.agentId,
-    agentWallet: agent.agentWallet ?? input.controllerWallet,
-    identityQHash,
-    delegationQHash,
-  };
+  const proofs = r.proofs as Record<string, unknown>;
+  const agentId =
+    identity.identity?.verifiedVerifiers?.[0]?.data?.agentId ?? "";
+  return refFromProofs(agentId, agentWallet, proofs);
 }
 
 /** Owner-revoke a single proof by qHash via the profile key. Best-effort. */
