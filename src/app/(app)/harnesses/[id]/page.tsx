@@ -1,11 +1,10 @@
 import { notFound } from "next/navigation";
 import { getCatalogHarness } from "@/lib/catalog";
 import { readDB } from "@/lib/store";
-import { formatCents } from "@/lib/trust";
 import { getAction } from "@/lib/tools";
+import { AgentIdCard } from "@/components/AgentIdCard";
 import {
   ApproveStepButton,
-  RevokeButton,
   RunTaskButton,
   VerifyChainButton,
 } from "@/components/HarnessActions";
@@ -46,49 +45,19 @@ export default async function HarnessPage({
   const receipts = db.receipts
     .filter((r) => r.harnessId === id)
     .sort((a, b) => b.seq - a.seq);
-  const d = harness.delegation;
   const active = harness.status === "active";
-  const budgetPct = Math.min(
-    100,
-    Math.round((d.spentCents / d.maxSpendCents) * 100)
-  );
 
   return (
     <div className="space-y-10">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="text-xs font-medium uppercase tracking-wide text-zinc-400">
-            {harness.category}
-          </div>
-          <h1 className="mt-1 flex items-center gap-3 text-2xl font-semibold tracking-tight">
-            {harness.name}
-            {!active && (
-              <span className="rounded-full bg-red-100 dark:bg-red-950 px-2.5 py-0.5 text-sm font-medium text-red-700 dark:text-red-400">
-                Offboarded
-              </span>
-            )}
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-zinc-500">
-            {harness.description}
-          </p>
-          <p className="mt-2 font-mono text-xs text-zinc-400">
-            Employee ID: {harness.identity.agentId} · hired{" "}
-            {new Date(harness.installedAt).toLocaleDateString()}
-          </p>
-          {harness.authorization && (
-            <p className="mt-1 font-mono text-xs text-zinc-400">
-              Authorized under account{" "}
-              {harness.authorization.walletAddress
-                ? `${harness.authorization.walletAddress.slice(0, 6)}…${harness.authorization.walletAddress.slice(-4)}`
-                : harness.authorization.qHash
-                  ? `${harness.authorization.qHash.slice(0, 10)}…`
-                  : "local demo"}
-            </p>
-          )}
-        </div>
-        {active && <RevokeButton harnessId={harness.id} />}
-      </div>
+      {/* Verifiable identity card */}
+      <AgentIdCard
+        harness={harness}
+        latestReceiptHash={receipts[0]?.hash ?? null}
+        receiptCount={receipts.length}
+      />
+      <p className="-mt-4 max-w-2xl text-sm text-zinc-500">
+        {harness.description}
+      </p>
 
       {/* Run a task */}
       <section>
@@ -172,68 +141,6 @@ export default async function HarnessPage({
           </div>
         </section>
       )}
-
-      {/* Permissions */}
-      <section>
-        <h2 className="mb-3 text-lg font-semibold">Role &amp; permissions</h2>
-        <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5">
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div>
-              <div className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-400">
-                Can do on its own
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {d.allowedActions.map((a) => (
-                  <span
-                    key={a}
-                    className="rounded-full bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 font-mono text-xs text-emerald-700 dark:text-emerald-400"
-                  >
-                    {a}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div>
-              <div className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-400">
-                Always asks you first
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {d.deniedActions.length === 0 ? (
-                  <span className="text-xs text-zinc-400">None</span>
-                ) : (
-                  d.deniedActions.map((a) => (
-                    <span
-                      key={a}
-                      className="rounded-full bg-amber-50 dark:bg-amber-950 px-2 py-0.5 font-mono text-xs text-amber-800 dark:text-amber-400"
-                    >
-                      {a}
-                    </span>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="mt-6">
-            <div className="mb-1 flex justify-between text-xs text-zinc-500">
-              <span>Monthly budget</span>
-              <span>
-                {formatCents(d.spentCents)} of {formatCents(d.maxSpendCents)}{" "}
-                used
-              </span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
-              <div
-                className="h-full rounded-full bg-zinc-900 dark:bg-zinc-100"
-                style={{ width: `${budgetPct}%` }}
-              />
-            </div>
-            <div className="mt-2 text-xs text-zinc-400">
-              Permissions expire {new Date(d.expiresAt).toLocaleDateString()}{" "}
-              and renew on your approval.
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Activity */}
       <section>
