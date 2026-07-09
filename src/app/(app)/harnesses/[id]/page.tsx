@@ -36,7 +36,7 @@ export default async function HarnessPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const db = readDB();
+  const db = await readDB();
   const harness = db.harnesses.find((h) => h.id === id);
   if (!harness) notFound();
   const spec = getCatalogHarness(harness.slug);
@@ -76,6 +76,16 @@ export default async function HarnessPage({
             Employee ID: {harness.identity.agentId} · hired{" "}
             {new Date(harness.installedAt).toLocaleDateString()}
           </p>
+          {harness.authorization && (
+            <p className="mt-1 font-mono text-xs text-zinc-400">
+              Authorized under account{" "}
+              {harness.authorization.walletAddress
+                ? `${harness.authorization.walletAddress.slice(0, 6)}…${harness.authorization.walletAddress.slice(-4)}`
+                : harness.authorization.qHash
+                  ? `${harness.authorization.qHash.slice(0, 10)}…`
+                  : "local demo"}
+            </p>
+          )}
         </div>
         {active && <RevokeButton harnessId={harness.id} />}
       </div>
@@ -132,6 +142,11 @@ export default async function HarnessPage({
                               {tool.integration}: {tool.label}
                             </span>
                             <DecisionBadge decision={s.decision} />
+                            {s.decision === "allowed" && !s.simulated && (
+                              <span className="rounded-full bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
+                                Live
+                              </span>
+                            )}
                             {s.approvedByHuman && (
                               <span className="text-xs text-zinc-400">
                                 approved by you
