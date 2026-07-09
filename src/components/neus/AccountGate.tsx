@@ -93,7 +93,7 @@ export function AccountGate({ children }: { children: React.ReactNode }) {
               <button
                 onClick={startSignIn}
                 disabled={starting}
-                className="w-full rounded-sm bg-accent px-3 py-2.5 text-sm font-semibold uppercase tracking-wide text-base hover:bg-accent-press disabled:opacity-40"
+                className="w-full rounded-sm bg-accent px-3 py-2.5 text-sm font-semibold uppercase tracking-wide text-void hover:bg-accent-press disabled:opacity-40"
               >
                 {starting ? "Opening NEUS…" : "Verify & get started"}
               </button>

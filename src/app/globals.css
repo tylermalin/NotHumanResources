@@ -5,7 +5,7 @@
 
 @theme {
   /* (not)HumanResources — "Agent Console" design system */
-  --color-base: #111215; /* bg-base / terminal-black */
+  --color-void: #111215; /* bg-base / terminal-black */
   --color-surface: #1e1f24; /* bg-surface / black-raise-2 */
   --color-inset: #26272e; /* bg-inset / black-raise-3 */
   --color-raise: #17181c; /* black-raise-1 */
@@ -34,7 +34,7 @@ html {
 }
 
 body {
-  background: var(--color-base);
+  background: var(--color-void);
   color: var(--color-ink);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }

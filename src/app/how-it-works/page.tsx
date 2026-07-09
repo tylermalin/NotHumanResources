@@ -124,7 +124,7 @@ export default function HowItWorksPage() {
               ].map((b) => (
                 <div
                   key={b.t}
-                  className="rounded-sm border border-hairline bg-base/60 p-3 text-center"
+                  className="rounded-sm border border-hairline bg-void/60 p-3 text-center"
                 >
                   <div className="text-[11px] font-bold uppercase tracking-wide text-ink">
                     {b.t}
@@ -291,7 +291,7 @@ export default function HowItWorksPage() {
         </p>
         <Link
           href="/hire"
-          className="rounded-sm bg-accent px-5 py-2.5 text-sm font-semibold uppercase tracking-wide text-base hover:bg-accent-press"
+          className="rounded-sm bg-accent px-5 py-2.5 text-sm font-semibold uppercase tracking-wide text-void hover:bg-accent-press"
         >
           Deploy the harness
         </Link>

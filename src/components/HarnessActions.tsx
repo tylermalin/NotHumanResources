@@ -95,7 +95,7 @@ export function RunTaskButton({
       <button
         onClick={run}
         disabled={busy || disabled}
-        className="rounded-sm bg-accent px-3 py-1.5 text-sm font-semibold uppercase tracking-wide text-base hover:bg-accent-press disabled:opacity-40"
+        className="rounded-sm bg-accent px-3 py-1.5 text-sm font-semibold uppercase tracking-wide text-void hover:bg-accent-press disabled:opacity-40"
       >
         {busy ? "On it…" : `Assign: ${taskLabel}`}
       </button>

@@ -104,7 +104,7 @@ function Node({
 
 export default function LandingPage() {
   return (
-    <div className="relative isolate">
+    <div className="relative">
       {/* Full-bleed ethereal canvas + ambient glows */}
       <div className="fixed inset-0 -z-10 bg-[#040406]" />
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
