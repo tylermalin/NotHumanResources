@@ -55,6 +55,9 @@ export default function RootLayout({
               </span>
             </Link>
             <div className="flex flex-1 items-center gap-5 text-xs uppercase tracking-wider text-muted">
+              <Link href="/how-it-works" className="hover:text-ink">
+                How it works
+              </Link>
               <Link href="/hire" className="hover:text-ink">
                 Hire
               </Link>
