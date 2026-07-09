@@ -24,6 +24,10 @@ import {
 } from "./session";
 
 const GATE_ID = process.env.NEXT_PUBLIC_NEUS_GATE_ID;
+// Canonical app origin. When set, NEUS login always returns here regardless of
+// which URL the visitor started on (e.g. a *.vercel.app deploy URL); when unset
+// (local dev, preview deploys), we fall back to the current URL.
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
 
 export function AccountGate({ children }: { children: React.ReactNode }) {
   // null = not yet hydrated; avoids a flash of the wrong state on load.
@@ -46,10 +50,16 @@ export function AccountGate({ children }: { children: React.ReactNode }) {
     // redirects back to returnUrl with the login receipt. The Google-org gate
     // (GATE_ID) is reserved for per-agent credentialing at hire time, not site
     // access; a login receipt wouldn't satisfy that gate anyway.
-    const url = getHostedCheckoutUrl({
-      intent: "login",
-      returnUrl: window.location.href,
-    });
+    // Pin the return to the canonical origin (keeping the current path), so a
+    // visitor who landed on a *.vercel.app URL still comes back to the real
+    // domain signed in — not to the deploy URL.
+    const returnUrl = APP_URL
+      ? new URL(
+          window.location.pathname + window.location.search,
+          APP_URL
+        ).toString()
+      : window.location.href;
+    const url = getHostedCheckoutUrl({ intent: "login", returnUrl });
     window.location.assign(url);
   }
 
