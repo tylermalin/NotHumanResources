@@ -18,14 +18,19 @@
   --color-fault: #ff3b47; /* red-fault */
 
   --color-hairline: #2e313a; /* border-hairline / slate-dim */
-  --color-log: #4a4d5a; /* border-log / slate-muted */
-  --color-muted: #4a4d5a; /* slate-muted (dim text) */
+  --color-log: #4a4d5a; /* border-log / slate-muted (borders only) */
+  --color-muted: #cfd4de; /* secondary/body text — light off-white, readable */
   --color-ink: #ffffff; /* absolute-white */
 
   --font-display: var(--font-archivo-black), "Archivo Black", system-ui,
     sans-serif;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+}
+
+html {
+  /* Bump the root a touch so all rem-based text reads larger on the dark UI. */
+  font-size: 106.25%;
 }
 
 body {
