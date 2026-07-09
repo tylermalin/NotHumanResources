@@ -15,6 +15,7 @@
 // at http://localhost:3000/hire in the NEUS portal (Profile → Portals).
 import { getHostedCheckoutUrl } from "@neus/sdk";
 import { useEffect, useState } from "react";
+import { Logo } from "@/components/Logo";
 import {
   SESSION_EVENT,
   consumeLoginReturn,
@@ -75,10 +76,8 @@ export function AccountGate({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto max-w-xl py-16">
       <div className="overflow-hidden rounded-md border border-hairline bg-surface shadow-[0_0_40px_rgba(0,255,102,0.05)]">
-        <div className="flex items-center gap-2 border-b border-hairline bg-raise px-6 py-3.5 font-display text-xs uppercase tracking-[0.15em]">
-          <span className="text-accent">(!)</span>
-          <span className="text-accent">(not)</span>
-          <span>Human Resources</span>
+        <div className="border-b border-hairline bg-raise px-6 py-3.5 text-sm font-semibold tracking-tight text-ink">
+          <Logo iconClassName="h-5 w-5" />
         </div>
         <div className="p-8 text-center">
           <h1 className="font-display text-xl uppercase tracking-tight">

@@ -77,7 +77,7 @@ function Node({
     />
   );
   const text = (
-    <span className="text-[10px] uppercase tracking-[0.2em] text-white/40">
+    <span className="text-[10px] uppercase tracking-[0.2em] text-white/55">
       {label}
     </span>
   );
@@ -131,7 +131,7 @@ export default function LandingPage() {
             Don&apos;t deploy an autonomous AI agent without a harness.
           </h1>
 
-          <p className="mx-auto mt-6 max-w-2xl text-lg font-light leading-relaxed text-white/55 md:text-xl">
+          <p className="mx-auto mt-6 max-w-2xl text-lg font-light leading-relaxed text-white/75 md:text-xl">
             If you wouldn&apos;t hire a human without a budget, a manager, and an
             audit trail, don&apos;t let unmanaged software agents become your
             biggest liability.
@@ -150,7 +150,7 @@ export default function LandingPage() {
             >
               Talk to an architect
               <svg
-                className="h-4 w-4 text-white/50"
+                className="h-4 w-4 text-white/70"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -170,11 +170,11 @@ export default function LandingPage() {
         <section>
           <h2 className="text-center text-2xl font-semibold tracking-tight sm:text-3xl">
             Autonomous agents are brilliant.
-            <span className="block text-white/45">
+            <span className="block text-white/65">
               Unmanaged software agents are liabilities.
             </span>
           </h2>
-          <p className="mx-auto mt-3 max-w-2xl text-center text-sm text-white/50 sm:text-base">
+          <p className="mx-auto mt-3 max-w-2xl text-center text-sm text-white/70 sm:text-base">
             Building enterprise-grade agents means fighting infrastructure, not
             just model logic.
           </p>
@@ -195,7 +195,7 @@ export default function LandingPage() {
                 <h3 className="mt-3 text-lg font-medium text-white">
                   {r.title}
                 </h3>
-                <p className="mt-2 text-sm leading-relaxed text-white/55">
+                <p className="mt-2 text-sm leading-relaxed text-white/75">
                   {r.body}
                 </p>
               </div>
@@ -208,7 +208,7 @@ export default function LandingPage() {
           <h2 className="text-center text-2xl font-semibold tracking-tight sm:text-3xl">
             Meet the Agent Harness
           </h2>
-          <p className="mx-auto mt-3 max-w-2xl text-center text-sm text-white/50 sm:text-base">
+          <p className="mx-auto mt-3 max-w-2xl text-center text-sm text-white/70 sm:text-base">
             The dedicated operating system for your digital workforce.
           </p>
           <div className={`mx-auto mt-10 max-w-4xl ${glass} p-6 sm:p-8`}>
@@ -229,7 +229,7 @@ export default function LandingPage() {
                     {col.items.map((i) => (
                       <li
                         key={i}
-                        className="flex items-center gap-2 text-xs text-white/50"
+                        className="flex items-center gap-2 text-xs text-white/70"
                       >
                         <span className="h-1 w-1 rounded-full bg-emerald-300/70" />
                         {i}
@@ -255,7 +255,7 @@ export default function LandingPage() {
                     />
                   </div>
                 </div>
-                <p className="mt-2 text-sm leading-relaxed text-white/55">
+                <p className="mt-2 text-sm leading-relaxed text-white/75">
                   {f.body}
                 </p>
               </div>
@@ -271,7 +271,7 @@ export default function LandingPage() {
           <p className="mt-3 text-base font-light text-white/70">
             Models change every month. Your guardrails shouldn&apos;t have to.
           </p>
-          <div className="mt-5 grid gap-5 text-sm leading-relaxed text-white/55 md:grid-cols-2">
+          <div className="mt-5 grid gap-5 text-sm leading-relaxed text-white/75 md:grid-cols-2">
             <p>
               When you build security, cost tracking, and prompt-logging into
               code tied to one LLM vendor, you lock your enterprise into legacy
@@ -291,7 +291,7 @@ export default function LandingPage() {
           <h2 className="mx-auto max-w-2xl text-2xl font-semibold tracking-tight sm:text-3xl">
             Stop building custom cages around your AI models.
           </h2>
-          <p className="mx-auto mt-3 max-w-2xl text-sm text-white/50 sm:text-base">
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-white/70 sm:text-base">
             Offload the infrastructure layer so your engineers spend every cycle
             shipping product, not guardrails.
           </p>

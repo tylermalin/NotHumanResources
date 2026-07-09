@@ -7,6 +7,7 @@
 import { formatCents } from "@/lib/trust";
 import type { InstalledHarness } from "@/lib/types";
 import { FinishNeusSetup, RevokeButton } from "@/components/HarnessActions";
+import { Logo } from "@/components/Logo";
 
 function shortAccount(auth: InstalledHarness["authorization"]): string {
   if (!auth) return "—";
@@ -38,11 +39,7 @@ export function AgentIdCard({
     <div className="overflow-hidden rounded-md border border-hairline bg-surface shadow-[0_20px_40px_rgba(0,0,0,0.45),0_0_40px_rgba(0,255,102,0.05)]">
       {/* Console header banner */}
       <div className="flex items-center justify-between border-b border-hairline bg-raise px-6 py-3.5">
-        <div className="flex items-center gap-2 font-display text-xs uppercase tracking-[0.15em]">
-          <span className="text-accent">(!)</span>
-          <span className="text-accent">(not)</span>
-          <span>Human Resources</span>
-        </div>
+        <Logo iconClassName="h-5 w-5" className="text-sm font-semibold tracking-tight text-ink" />
         {active ? (
           <span className="flex items-center gap-1.5 rounded-sm border border-accent/30 bg-ghost px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-accent">
             <span className="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_#00ff66]" />
