@@ -42,13 +42,17 @@ export default function LandingPage() {
     <div className="space-y-24 py-8">
       {/* Hero */}
       <section className="text-center">
-        <h1 className="mx-auto max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl">
-          <span className="text-zinc-400">(not)</span>Human Resources
+        <div className="mb-4 inline-flex items-center gap-2 rounded-sm border border-hairline bg-surface px-3 py-1 text-[11px] uppercase tracking-[0.15em] text-muted">
+          <span className="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_8px_#00ff66]" />
+          Trust by construction
+        </div>
+        <h1 className="mx-auto max-w-3xl font-display text-4xl uppercase leading-none tracking-tight sm:text-5xl">
+          <span className="text-accent">(not)</span>Human Resources
         </h1>
-        <p className="mt-3 text-lg font-medium text-zinc-600 dark:text-zinc-300">
+        <p className="mt-4 text-lg font-medium text-ink/80">
           Your HR department for AI agents.
         </p>
-        <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-zinc-500">
+        <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-muted">
           Hire pre-trained AI workers with a verified identity, a role scoped
           to exactly what you allow, and a tamper-evident record of everything
           they do. The trust isn&apos;t a feature you configure — it&apos;s the
@@ -57,13 +61,13 @@ export default function LandingPage() {
         <div className="mt-8 flex justify-center gap-3">
           <Link
             href="/hire"
-            className="rounded-md bg-zinc-900 dark:bg-zinc-100 px-5 py-2.5 text-sm font-medium text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-300"
+            className="rounded-sm bg-accent px-5 py-2.5 text-sm font-semibold uppercase tracking-wide text-base hover:bg-accent-press"
           >
             Get started
           </Link>
           <a
             href="#how-it-works"
-            className="rounded-md border border-zinc-300 dark:border-zinc-700 px-5 py-2.5 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="rounded-sm border border-hairline px-5 py-2.5 text-sm font-medium uppercase tracking-wide hover:bg-inset"
           >
             How it works
           </a>
@@ -72,20 +76,20 @@ export default function LandingPage() {
 
       {/* How it works */}
       <section id="how-it-works">
-        <h2 className="text-center text-2xl font-semibold tracking-tight">
+        <h2 className="text-center font-display text-2xl uppercase tracking-tight">
           How it works
         </h2>
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           {steps.map((s) => (
             <div
               key={s.n}
-              className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6"
+              className="rounded-md border border-hairline bg-surface p-6"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-900 dark:bg-zinc-100 text-sm font-semibold text-white dark:text-zinc-900">
+              <div className="flex h-8 w-8 items-center justify-center rounded-sm border border-accent/30 bg-ghost font-display text-sm text-accent">
                 {s.n}
               </div>
-              <h3 className="mt-4 font-semibold">{s.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-zinc-500">{s.body}</p>
+              <h3 className="mt-4 font-semibold text-ink">{s.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-muted">{s.body}</p>
             </div>
           ))}
         </div>
@@ -93,10 +97,10 @@ export default function LandingPage() {
 
       {/* Features */}
       <section>
-        <h2 className="text-center text-2xl font-semibold tracking-tight">
+        <h2 className="text-center font-display text-2xl uppercase tracking-tight">
           Accountability, built in — not bolted on
         </h2>
-        <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-zinc-500">
+        <p className="mx-auto mt-2 max-w-2xl text-center text-sm text-muted">
           Other agent platforms add governance when enterprise customers demand
           it. Here it&apos;s what every worker runs on, from your first hire.
         </p>
@@ -104,21 +108,21 @@ export default function LandingPage() {
           {features.map((f) => (
             <div
               key={f.title}
-              className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6"
+              className="rounded-md border border-hairline bg-surface p-6"
             >
-              <h3 className="font-semibold">{f.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-zinc-500">{f.body}</p>
+              <h3 className="font-semibold text-ink">{f.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-muted">{f.body}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* Trust strip */}
-      <section className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 text-center">
-        <div className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+      <section className="rounded-md border border-hairline border-l-2 border-l-accent bg-surface p-8 text-center">
+        <div className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent">
           Secured by NEUS
         </div>
-        <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-zinc-500">
+        <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-muted">
           Account setup and every work receipt issue through the NEUS trust
           network. Receipts are portable and independently verifiable — your
           proof doesn&apos;t live or die with this platform.
@@ -127,13 +131,13 @@ export default function LandingPage() {
 
       {/* Final CTA */}
       <section className="text-center">
-        <h2 className="text-2xl font-semibold tracking-tight">
+        <h2 className="font-display text-2xl uppercase tracking-tight">
           Your first hire is five minutes away
         </h2>
         <div className="mt-6">
           <Link
             href="/hire"
-            className="rounded-md bg-zinc-900 dark:bg-zinc-100 px-5 py-2.5 text-sm font-medium text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-300"
+            className="rounded-sm bg-accent px-5 py-2.5 text-sm font-semibold uppercase tracking-wide text-base hover:bg-accent-press"
           >
             Hire an AI worker
           </Link>

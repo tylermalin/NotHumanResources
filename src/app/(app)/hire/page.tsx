@@ -14,10 +14,10 @@ export default async function LibraryPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="font-display text-2xl uppercase tracking-tight">
           Hire an AI worker
         </h1>
-        <p className="mt-1 text-sm text-zinc-500">
+        <p className="mt-1 text-sm text-muted">
           Pre-trained, ready on day one. Every hire comes with a verified
           identity, a role scoped to exactly what you allow, and a work record
           you can audit — doing real work in under five minutes.
@@ -29,20 +29,20 @@ export default async function LibraryPage() {
           return (
             <div
               key={h.slug}
-              className="flex flex-col rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5"
+              className="flex flex-col rounded-md border border-hairline bg-surface p-5 transition-colors hover:border-accent/40"
             >
-              <div className="text-xs font-medium uppercase tracking-wide text-zinc-400">
+              <div className="text-[11px] font-medium uppercase tracking-wide text-muted">
                 {h.category}
               </div>
-              <h2 className="mt-1 font-semibold">{h.name}</h2>
-              <p className="mt-2 flex-1 text-sm text-zinc-600 dark:text-zinc-400">
-                {h.description}
-              </p>
+              <h2 className="mt-1 font-display text-base uppercase tracking-tight text-ink">
+                {h.name}
+              </h2>
+              <p className="mt-2 flex-1 text-sm text-muted">{h.description}</p>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {h.integrations.map((i) => (
                   <span
                     key={i}
-                    className="rounded-full bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-xs text-zinc-600 dark:text-zinc-400"
+                    className="rounded-sm border border-log bg-inset px-2 py-0.5 text-[11px] text-ink/70"
                   >
                     {i}
                   </span>
@@ -52,8 +52,9 @@ export default async function LibraryPage() {
                 {installedId ? (
                   <Link
                     href={`/harnesses/${installedId}`}
-                    className="inline-block rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                    className="inline-flex items-center gap-1.5 rounded-sm border border-accent/30 bg-ghost px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-accent hover:bg-accent/20"
                   >
+                    <span className="h-1.5 w-1.5 rounded-full bg-accent" />
                     On your team — open →
                   </Link>
                 ) : (

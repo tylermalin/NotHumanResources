@@ -26,13 +26,13 @@ export function SessionBadge() {
   if (session.account) {
     return (
       <span className="flex items-center gap-2">
-        <span className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+        <span className="flex items-center gap-1.5 rounded-sm border border-accent/30 bg-ghost px-2.5 py-0.5 text-xs font-medium text-accent">
+          <span className="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_6px_#00ff66]" />
           {session.handle ? `@${session.handle}` : shortAccount(session.account)}
         </span>
         <button
           onClick={clearSession}
-          className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+          className="text-xs uppercase tracking-wide text-muted hover:text-ink"
         >
           Sign out
         </button>
@@ -42,12 +42,12 @@ export function SessionBadge() {
   if (session.demo) {
     return (
       <span className="flex items-center gap-2">
-        <span className="rounded-full bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-xs text-zinc-500">
+        <span className="rounded-sm border border-hairline bg-inset px-2 py-0.5 text-xs uppercase tracking-wide text-muted">
           Demo mode
         </span>
         <button
           onClick={clearSession}
-          className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+          className="text-xs uppercase tracking-wide text-muted hover:text-ink"
         >
           Exit
         </button>

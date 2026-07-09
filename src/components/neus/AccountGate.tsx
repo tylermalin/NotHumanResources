@@ -55,56 +55,67 @@ export function AccountGate({ children }: { children: React.ReactNode }) {
 
   if (signedIn === null) {
     return (
-      <div className="py-24 text-center text-sm text-zinc-400">Loading…</div>
+      <div className="py-24 text-center text-sm uppercase tracking-wide text-muted">
+        Loading…
+      </div>
     );
   }
   if (signedIn) return <>{children}</>;
 
   return (
     <div className="mx-auto max-w-xl py-16">
-      <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 text-center">
-        <h1 className="text-xl font-semibold tracking-tight">
-          Set up your account
-        </h1>
-        <p className="mx-auto mt-2 max-w-md text-sm text-zinc-500">
-          Verify once and you&apos;re in — no new passwords. Your account is a
-          portable trust receipt, and every AI worker you hire is accountable
-          to it.
-        </p>
-        <div className="mt-6 flex justify-center">
-          {GATE_ID ? (
-            <button
-              onClick={startSignIn}
-              disabled={starting}
-              className="w-full rounded-md bg-zinc-900 dark:bg-zinc-100 px-3 py-2.5 text-sm font-medium text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-300 disabled:opacity-50"
-            >
-              {starting ? "Opening NEUS…" : "Verify & get started"}
-            </button>
-          ) : (
-            <div className="w-full text-left">
-              <div className="rounded-md border border-amber-300 dark:border-amber-900 bg-amber-50 dark:bg-amber-950 p-4 text-sm text-amber-900 dark:text-amber-200">
-                <div className="font-medium">Verification not configured</div>
-                <p className="mt-1">
-                  Publish a gate at neus.network (Profile → Portals), then set{" "}
-                  <code className="font-mono text-xs">
-                    NEXT_PUBLIC_NEUS_GATE_ID
-                  </code>{" "}
-                  in <code className="font-mono text-xs">.env.local</code>.
-                </p>
-              </div>
-              <button
-                onClick={saveDemo}
-                className="mt-4 w-full rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-2 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              >
-                Continue in local demo mode
-              </button>
-            </div>
-          )}
+      <div className="overflow-hidden rounded-md border border-hairline bg-surface shadow-[0_0_40px_rgba(0,255,102,0.05)]">
+        <div className="flex items-center gap-2 border-b border-hairline bg-raise px-6 py-3.5 font-display text-xs uppercase tracking-[0.15em]">
+          <span className="text-accent">(!)</span>
+          <span className="text-accent">(not)</span>
+          <span>Human Resources</span>
         </div>
-        <p className="mt-4 text-xs text-zinc-400">
-          Account setup issues through NEUS. You never share a password with
-          us, and your verification is reusable anywhere NEUS is accepted.
-        </p>
+        <div className="p-8 text-center">
+          <h1 className="font-display text-xl uppercase tracking-tight">
+            Set up your account
+          </h1>
+          <p className="mx-auto mt-2 max-w-md text-sm text-muted">
+            Verify once and you&apos;re in — no new passwords. Your account is a
+            portable trust receipt, and every AI worker you hire is accountable
+            to it.
+          </p>
+          <div className="mt-6 flex justify-center">
+            {GATE_ID ? (
+              <button
+                onClick={startSignIn}
+                disabled={starting}
+                className="w-full rounded-sm bg-accent px-3 py-2.5 text-sm font-semibold uppercase tracking-wide text-base hover:bg-accent-press disabled:opacity-40"
+              >
+                {starting ? "Opening NEUS…" : "Verify & get started"}
+              </button>
+            ) : (
+              <div className="w-full text-left">
+                <div className="rounded-sm border border-pending/30 bg-pending/10 p-4 text-sm text-pending">
+                  <div className="font-medium uppercase tracking-wide">
+                    Verification not configured
+                  </div>
+                  <p className="mt-1 text-ink/70">
+                    Publish a gate at neus.network (Profile → Portals), then set{" "}
+                    <code className="font-mono text-xs text-accent">
+                      NEXT_PUBLIC_NEUS_GATE_ID
+                    </code>{" "}
+                    in <code className="font-mono text-xs text-accent">.env.local</code>.
+                  </p>
+                </div>
+                <button
+                  onClick={saveDemo}
+                  className="mt-4 w-full rounded-sm border border-hairline px-3 py-2 text-sm font-medium uppercase tracking-wide hover:bg-inset"
+                >
+                  Continue in local demo mode
+                </button>
+              </div>
+            )}
+          </div>
+          <p className="mt-4 text-xs text-muted">
+            Account setup issues through NEUS. You never share a password with
+            us, and your verification is reusable anywhere NEUS is accepted.
+          </p>
+        </div>
       </div>
     </div>
   );

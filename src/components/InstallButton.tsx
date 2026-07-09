@@ -26,7 +26,7 @@ export function InstallButton({ slug }: { slug: string }) {
     <button
       onClick={install}
       disabled={busy}
-      className="rounded-md bg-zinc-900 dark:bg-zinc-100 px-3 py-1.5 text-sm font-medium text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-300 disabled:opacity-50"
+      className="rounded-sm bg-accent px-4 py-1.5 text-sm font-semibold uppercase tracking-wide text-base hover:bg-accent-press disabled:opacity-40"
     >
       {busy ? "Onboarding…" : "Hire"}
     </button>
