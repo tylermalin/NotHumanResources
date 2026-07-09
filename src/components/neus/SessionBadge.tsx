@@ -1,5 +1,4 @@
 "use client";
-import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import {
   SESSION_EVENT,
@@ -8,10 +7,9 @@ import {
   type NeusSession,
 } from "./session";
 
-const ProofBadge = dynamic(
-  () => import("@neus/sdk/widgets").then((m) => m.ProofBadge),
-  { ssr: false }
-);
+function shortAccount(account: string): string {
+  return `${account.slice(0, 6)}…${account.slice(-4)}`;
+}
 
 export function SessionBadge() {
   const [session, setSession] = useState<NeusSession | null>(null);
@@ -25,10 +23,13 @@ export function SessionBadge() {
 
   if (!session) return null;
 
-  if (session.qHash) {
+  if (session.account) {
     return (
       <span className="flex items-center gap-2">
-        <ProofBadge qHash={session.qHash} size="sm" />
+        <span className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          {session.handle ? `@${session.handle}` : shortAccount(session.account)}
+        </span>
         <button
           onClick={clearSession}
           className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"

@@ -1,26 +1,36 @@
-// Client-side NEUS session: account setup issues through NEUS Hosted Verify,
-// and the resulting trust receipt ID (qHash) IS the account credential.
-// Stored locally; server-side eligibility checks can look the receipt up
-// later via the NEUS HTTP API using this same qHash.
-const QHASH_KEY = "nhr_neus_qhash";
+// Client-side NEUS session. Site sign-in uses NEUS intent=login, which
+// redirects back with the verified profile in the URL (primaryAccount = the
+// wallet, plus handle). That wallet address IS the account credential; the
+// server re-confirms it belongs to a real, proofed NEUS account before trusted
+// actions (see lib/neus.ts).
+const ACCOUNT_KEY = "nhr_account";
+const HANDLE_KEY = "nhr_handle";
 const DEMO_KEY = "nhr_demo_mode";
 export const SESSION_EVENT = "nhr-session-change";
+export const ACCOUNT_HEADER = "x-neus-account";
 
 export interface NeusSession {
-  qHash: string | null;
+  /** Verified wallet address from NEUS login, or null. */
+  account: string | null;
+  /** NEUS handle, e.g. "tylermalin". */
+  handle: string | null;
   demo: boolean;
 }
 
 export function getSession(): NeusSession {
-  if (typeof window === "undefined") return { qHash: null, demo: false };
+  if (typeof window === "undefined")
+    return { account: null, handle: null, demo: false };
   return {
-    qHash: window.localStorage.getItem(QHASH_KEY),
+    account: window.localStorage.getItem(ACCOUNT_KEY),
+    handle: window.localStorage.getItem(HANDLE_KEY),
     demo: window.localStorage.getItem(DEMO_KEY) === "1",
   };
 }
 
-export function saveVerified(qHash: string): void {
-  window.localStorage.setItem(QHASH_KEY, qHash);
+export function saveLogin(account: string, handle: string | null): void {
+  window.localStorage.setItem(ACCOUNT_KEY, account);
+  if (handle) window.localStorage.setItem(HANDLE_KEY, handle);
+  else window.localStorage.removeItem(HANDLE_KEY);
   window.localStorage.removeItem(DEMO_KEY);
   window.dispatchEvent(new Event(SESSION_EVENT));
 }
@@ -31,88 +41,83 @@ export function saveDemo(): void {
 }
 
 export function clearSession(): void {
-  window.localStorage.removeItem(QHASH_KEY);
+  window.localStorage.removeItem(ACCOUNT_KEY);
+  window.localStorage.removeItem(HANDLE_KEY);
   window.localStorage.removeItem(DEMO_KEY);
   window.dispatchEvent(new Event(SESSION_EVENT));
 }
 
 export function hasSession(s: NeusSession): boolean {
-  return Boolean(s.qHash) || s.demo;
+  return Boolean(s.account) || s.demo;
 }
 
-/**
- * Complete sign-in from a redirect-delivery gate. This gate delivers the
- * receipt by redirecting the browser to its successReturnUrl with the qHash in
- * the URL (rather than the popup postMessage the widget also supports). On
- * return we read that qHash, save it, and strip it from the address bar so a
- * refresh doesn't re-trigger. Returns the qHash if one was consumed.
- */
-const QHASH_RE = /^0x[0-9a-fA-F]{64}$/;
+const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/;
 
-export function consumeReturnedQHash(): string | null {
+// Params NEUS appends to the returnUrl after intent=login. Stripped after we
+// read them so a refresh doesn't re-trigger.
+const LOGIN_PARAMS = [
+  "code",
+  "expiresIn",
+  "handle",
+  "profileId",
+  "primaryAccount",
+  "accountType",
+  "proofCount",
+  "hasProofs",
+  "needsOnboarding",
+  "account",
+];
+
+/**
+ * Complete sign-in from the NEUS intent=login redirect. Reads the verified
+ * wallet (primaryAccount) and handle from the callback URL, saves the session,
+ * and strips the login params from the address bar. Also accepts a manual
+ * ?account=0x… for local testing. Returns the account if one was consumed.
+ */
+export function consumeLoginReturn(): string | null {
   if (typeof window === "undefined") return null;
   const url = new URL(window.location.href);
-  const search = new URLSearchParams(url.search);
-  const hash = new URLSearchParams(
-    url.hash.startsWith("#") ? url.hash.slice(1) : url.hash
-  );
-  // NEUS may return the receipt under different param names depending on the
-  // flow (qHash, proof, receipt, …). Rather than guess, accept any param whose
-  // value is shaped like a receipt id (0x + 64 hex).
-  let qHash: string | null = null;
-  let matchedKey: string | null = null;
-  const allParams = [...search, ...hash];
-  for (const [key, value] of allParams) {
-    if (QHASH_RE.test(value)) {
-      qHash = value;
-      matchedKey = key;
-      break;
-    }
-  }
-  if (!qHash) {
-    if (allParams.length > 0) {
-      // Callback carried params but none looked like a receipt id — log them so
-      // we can see what the NEUS login flow actually returns.
+  const p = url.searchParams;
+  const account = p.get("primaryAccount") ?? p.get("account");
+  if (!account || !ADDRESS_RE.test(account)) {
+    // Log an unexpected callback so we can see what NEUS returned.
+    if (p.get("code") || p.get("profileId")) {
       console.warn(
-        "[NHR] sign-in return: no receipt-shaped param found. Callback params:",
-        allParams
+        "[NHR] login return without a usable account:",
+        Object.fromEntries(p)
       );
     }
     return null;
   }
-  console.log("[NHR] sign-in return: captured receipt from", matchedKey);
-  saveVerified(qHash);
-  if (matchedKey) search.delete(matchedKey);
-  url.search = search.toString();
-  url.hash = "";
+  saveLogin(account, p.get("handle"));
+  for (const k of LOGIN_PARAMS) p.delete(k);
+  url.search = p.toString();
   window.history.replaceState({}, "", url.toString());
-  return qHash;
+  console.log("[NHR] signed in as", account);
+  return account;
 }
 
 /**
- * fetch() for trusted (state-changing) actions: attaches the receipt id so the
- * server can re-confirm eligibility (see lib/neus.ts). If the server rejects
- * the receipt (401), the local session is cleared so the account gate prompts a
- * fresh verification instead of the UI silently doing nothing.
+ * fetch() for trusted (state-changing) actions: attaches the account so the
+ * server can re-confirm it (see lib/neus.ts). If the server rejects the account
+ * (401), the local session is cleared so the gate prompts a fresh sign-in —
+ * but only when the account itself is the problem, not a transient check error.
  */
 export async function trustedFetch(
   input: string,
   init: RequestInit = {}
 ): Promise<Response> {
   const headers = new Headers(init.headers);
-  const { qHash } = getSession();
-  if (qHash) headers.set("x-neus-qhash", qHash);
+  const { account } = getSession();
+  if (account) headers.set(ACCOUNT_HEADER, account);
   const res = await fetch(input, { ...init, headers });
   if (res.status === 401) {
-    // Only force re-verification when the receipt itself is the problem —
-    // not when the server merely couldn't complete the check (transient),
-    // which would otherwise bounce a genuinely signed-in user in a loop.
     const reason = await res
       .clone()
       .json()
       .then((b: { reason?: string }) => b?.reason)
       .catch(() => null);
-    if (reason === "no-receipt" || reason === "receipt-not-found") {
+    if (reason === "no-account" || reason === "account-not-verified") {
       clearSession();
     }
   }

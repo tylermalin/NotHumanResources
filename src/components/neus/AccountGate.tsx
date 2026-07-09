@@ -17,7 +17,7 @@ import { getHostedCheckoutUrl } from "@neus/sdk";
 import { useEffect, useState } from "react";
 import {
   SESSION_EVENT,
-  consumeReturnedQHash,
+  consumeLoginReturn,
   getSession,
   hasSession,
   saveDemo,
@@ -31,9 +31,9 @@ export function AccountGate({ children }: { children: React.ReactNode }) {
   const [starting, setStarting] = useState(false);
 
   useEffect(() => {
-    // If we've just been redirected back from Hosted Verify with a receipt in
-    // the URL, complete sign-in from it before reading session state.
-    consumeReturnedQHash();
+    // If we've just been redirected back from NEUS login, complete sign-in
+    // from the callback params before reading session state.
+    consumeLoginReturn();
     const sync = () => setSignedIn(hasSession(getSession()));
     sync();
     window.addEventListener(SESSION_EVENT, sync);
