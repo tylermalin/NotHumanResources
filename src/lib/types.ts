@@ -82,6 +82,11 @@ export interface InstalledHarness {
    * resolve the agent and move it to neusAgent.
    */
   neusAgentPending?: { hostedVerifyUrl: string; agentWallet: string };
+  /**
+   * The dedicated agent wallet's private key. Server-side only, never sent to
+   * the client — the agent signs its own identity/actions with this.
+   */
+  neusAgentKey?: string;
 }
 
 /**

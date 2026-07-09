@@ -70,6 +70,7 @@ export async function installHarness(
         preset: spec.delegationPreset,
         expiresAt: delegation.expiresAt,
       });
+      harness.neusAgentKey = result.agentPrivateKey;
       if (result.status === "created") {
         harness.neusAgent = result.agent;
       } else {

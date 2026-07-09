@@ -7,6 +7,7 @@
 // the npk profile key (server-only). When the controller is the key owner and
 // signed in, NEUS signs automatically (path: session_auto_complete); otherwise
 // it reports the hosted step needed.
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import type { DelegationPreset } from "./trust";
 import type { NeusAgentRef } from "./types";
 
@@ -94,14 +95,31 @@ function refFromProofs(
 }
 
 export type CreateAgentResult =
-  | { status: "created"; agent: NeusAgentRef }
-  | { status: "pending"; hostedVerifyUrl: string; agentWallet: string };
+  | { status: "created"; agent: NeusAgentRef; agentPrivateKey: string }
+  | {
+      status: "pending";
+      hostedVerifyUrl: string;
+      agentWallet: string;
+      agentPrivateKey: string;
+    };
+
+interface SigStep {
+  signer?: string;
+  signerString?: string;
+  signedTimestamp?: number;
+  verifierId?: string;
+  data?: Record<string, unknown>;
+}
 
 /**
- * Create a NEUS Trusted Agent for a hired harness. When the controller is the
- * signed-in key owner, NEUS auto-signs and returns the proof pair
- * ("created"). Otherwise it returns a hostedVerifyUrl the controller must open
- * to sign identity + delegation in the browser ("pending").
+ * Create a NEUS Trusted Agent for a hired harness on its OWN dedicated wallet,
+ * so every agent is a distinct identity (not the shared controller identity).
+ *
+ * We mint an EOA for the agent, sign the agent-identity step with it (the agent
+ * wallet is the required signer), and complete the agent-delegation step via the
+ * controller's signed-in session. If the delegation can't finish server-side
+ * (needs credits, or a controller who isn't the key owner), we return "pending"
+ * with the hosted URL and keep the minted key so it can be resolved later.
  */
 export async function createAgent(input: {
   agentId: string;
@@ -112,9 +130,14 @@ export async function createAgent(input: {
   preset: DelegationPreset;
   expiresAt: string; // ISO — the delegation's computed expiry
 }): Promise<CreateAgentResult> {
+  const agentPrivateKey = generatePrivateKey();
+  const account = privateKeyToAccount(agentPrivateKey);
+  const agentWallet = account.address;
+
   const r = await callTool("neus_agent_create", {
     agentId: input.agentId,
     controllerWallet: input.controllerWallet,
+    agentWallet,
     agentLabel: input.agentLabel,
     agentType: "ai",
     chain: CHAIN,
@@ -125,19 +148,48 @@ export async function createAgent(input: {
     maxSpend: centsToMaxSpend(input.preset.maxSpendCents),
     expiresAt: Math.floor(new Date(input.expiresAt).getTime() / 1000),
   });
-  const agent = (r.agent ?? {}) as Record<string, string>;
-  const agentWallet = agent.agentWallet ?? input.controllerWallet;
-  const ref = refFromProofs(
-    agent.agentId ?? input.agentId,
-    agentWallet,
-    (r.proofs ?? {}) as Record<string, unknown>
-  );
-  if (ref) return { status: "created", agent: ref };
+
+  const sigs = (r.signatures ?? {}) as Record<string, SigStep>;
+
+  // Step 1 — agent-identity, signed by the agent's own wallet.
+  const step1 = sigs.step1_agent_identity;
+  if (
+    step1?.signerString &&
+    step1.signer?.toLowerCase() === agentWallet.toLowerCase()
+  ) {
+    const signature = await account.signMessage({
+      message: step1.signerString,
+    });
+    await callTool("neus_verify", {
+      walletAddress: agentWallet,
+      verifierIds: ["agent-identity"],
+      data: step1.data,
+      chain: CHAIN,
+      signature,
+      signedTimestamp: step1.signedTimestamp,
+    }).catch((e) => console.error("[NHR] identity verify:", e));
+  }
+
+  // Step 2 — agent-delegation, authorized by the controller's session.
+  const step2 = sigs.step2_agent_delegation;
+  if (step2?.data) {
+    await callTool("neus_verify", {
+      walletAddress: input.controllerWallet,
+      verifierIds: ["agent-delegation"],
+      data: step2.data,
+      chain: CHAIN,
+    }).catch((e) => console.error("[NHR] delegation verify:", e));
+  }
+
+  // Resolve the finished agent from its dedicated wallet.
+  const ref = await resolveAgent(agentWallet);
+  if (ref) return { status: "created", agent: ref, agentPrivateKey };
+
   const hostedVerifyUrl = r.hostedVerifyUrl as string | undefined;
   if (hostedVerifyUrl) {
-    return { status: "pending", hostedVerifyUrl, agentWallet };
+    return { status: "pending", hostedVerifyUrl, agentWallet, agentPrivateKey };
   }
-  throw new Error(`neus_agent_create returned no proofs or hosted URL`);
+  throw new Error("neus_agent_create did not complete");
 }
 
 /**
