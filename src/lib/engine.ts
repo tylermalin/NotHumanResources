@@ -12,12 +12,21 @@ import {
   issueReceipt,
 } from "./trust";
 import { getAction } from "./tools";
-import type { InstalledHarness, Run, RunStep } from "./types";
+import { providerForAction, resolveCredential } from "./connections";
+import type { DB, InstalledHarness, Run, RunStep } from "./types";
 
-export function installHarness(slug: string): InstalledHarness {
+/**
+ * Hire an agent. The authorizing receipt is the user's site sign-in credential,
+ * already server-confirmed by the route guard; we bind it to the agent here so
+ * every hire records which verified account stood behind it.
+ */
+export async function installHarness(
+  slug: string,
+  auth: { qHash: string | null; walletAddress: string | null }
+): Promise<InstalledHarness> {
   const spec = getCatalogHarness(slug);
   if (!spec) throw new Error(`Unknown harness: ${slug}`);
-  const db = readDB();
+  const db = await readDB();
   const existing = db.harnesses.find(
     (h) => h.slug === slug && h.status === "active"
   );
@@ -36,14 +45,25 @@ export function installHarness(slug: string): InstalledHarness {
     identity,
     privateKeyPem,
     delegation: grantDelegation(identity.agentId, spec.delegationPreset),
+    authorization: {
+      qHash: auth.qHash,
+      walletAddress: auth.walletAddress,
+      authorizedAt: new Date().toISOString(),
+    },
   };
   db.harnesses.push(harness);
-  writeDB(db);
+  await writeDB(db);
   return harness;
 }
 
-export function runTask(harnessId: string, taskId: string): Run {
-  const db = readDB();
+/** Resolve the live credential (if any) for an action's provider. */
+function credentialFor(db: DB, workspaceId: string, action: string) {
+  const provider = providerForAction(action);
+  return provider ? resolveCredential(db, workspaceId, provider) : null;
+}
+
+export async function runTask(harnessId: string, taskId: string): Promise<Run> {
+  const db = await readDB();
   const harness = db.harnesses.find((h) => h.id === harnessId);
   if (!harness) throw new Error("Harness not installed");
   if (harness.status !== "active") {
@@ -67,11 +87,16 @@ export function runTask(harnessId: string, taskId: string): Run {
 
   for (const [index, planned] of task.plan.entries()) {
     const tool = getAction(planned.action);
+    // The gate runs BEFORE any execution — always, for every action.
     const gate = checkDelegation(harness, planned.action, tool.costCents);
 
     let resultSummary: string | null = null;
+    let simulated = false;
     if (gate.allowed) {
-      resultSummary = tool.simulate(planned.params);
+      const credential = credentialFor(db, harness.workspaceId, planned.action);
+      const result = await tool.execute(planned.params, { credential });
+      resultSummary = result.summary;
+      simulated = result.simulated;
       harness.delegation.spentCents += tool.costCents;
     } else {
       run.status = "completed_with_denials";
@@ -96,12 +121,13 @@ export function runTask(harnessId: string, taskId: string): Run {
       resultSummary,
       receiptId: receipt.id,
       approvedByHuman: false,
+      simulated,
     };
     run.steps.push(step);
   }
 
   db.runs.push(run);
-  writeDB(db);
+  await writeDB(db);
   return run;
 }
 
@@ -111,8 +137,11 @@ export function runTask(harnessId: string, taskId: string): Run {
  * original denial receipt stays in the chain — approvals never rewrite
  * history.
  */
-export function approveStep(runId: string, stepIndex: number): Run {
-  const db = readDB();
+export async function approveStep(
+  runId: string,
+  stepIndex: number
+): Promise<Run> {
+  const db = await readDB();
   const run = db.runs.find((r) => r.id === runId);
   if (!run) throw new Error("Run not found");
   const step = run.steps[stepIndex];
@@ -125,7 +154,9 @@ export function approveStep(runId: string, stepIndex: number): Run {
   }
 
   const tool = getAction(step.action);
-  const resultSummary = tool.simulate(step.params);
+  const credential = credentialFor(db, harness.workspaceId, step.action);
+  const result = await tool.execute(step.params, { credential });
+  const resultSummary = result.summary;
   harness.delegation.spentCents += tool.costCents;
 
   const receipt = issueReceipt(db, harness, {
@@ -143,17 +174,18 @@ export function approveStep(runId: string, stepIndex: number): Run {
   step.resultSummary = resultSummary;
   step.receiptId = receipt.id;
   step.approvedByHuman = true;
+  step.simulated = result.simulated;
 
   if (run.steps.every((s) => s.decision === "allowed")) {
     run.status = "completed";
   }
-  writeDB(db);
+  await writeDB(db);
   return run;
 }
 
 /** Revoke this harness's identity and delegation. Other harnesses are unaffected. */
-export function revokeHarness(harnessId: string): void {
-  const db = readDB();
+export async function revokeHarness(harnessId: string): Promise<void> {
+  const db = await readDB();
   const harness = db.harnesses.find((h) => h.id === harnessId);
   if (!harness) throw new Error("Harness not installed");
   harness.status = "revoked";
@@ -168,5 +200,5 @@ export function revokeHarness(harnessId: string): void {
     resultSummary: "Harness deactivated. It can no longer act.",
     costCents: 0,
   });
-  writeDB(db);
+  await writeDB(db);
 }

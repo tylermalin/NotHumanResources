@@ -1,11 +1,28 @@
 // Skills library — the six v1 integrations from the PRD (Gmail, Google
 // Calendar, Slack, Google Drive, web search, HubSpot).
 //
-// v1 prototype: adapters are simulated so the delegation gate and receipt
-// flow can be exercised end-to-end without live OAuth. Each action carries
-// a cost (model + infra proxy, in cents) that draws down the delegation's
-// maxSpend, and an `irreversible` flag used by catalog presets to decide
-// what is denied-by-default.
+// Each action is an adapter with an async `execute`. When a live credential
+// for the action's provider resolves, `execute` calls the real API; otherwise
+// it falls back to `simulate` and reports `simulated: true`. The delegation
+// gate runs BEFORE execute (in engine.ts) and is untouched by this layer —
+// adapters only decide what happens once an action is already allowed.
+//
+// Each action carries a cost (model + infra proxy, in cents) that draws down
+// the delegation's maxSpend, and an `irreversible` flag used by catalog
+// presets to decide what is denied-by-default.
+import type { ResolvedCredential } from "./connections";
+
+export interface ToolResult {
+  /** One-line, human-readable outcome recorded on the receipt. */
+  summary: string;
+  /** True when produced by the simulated fallback (no live integration). */
+  simulated: boolean;
+}
+
+export interface ToolContext {
+  /** Credential for this action's provider, or null if not connected. */
+  credential: ResolvedCredential | null;
+}
 
 export interface ToolAction {
   action: string;
@@ -13,8 +30,69 @@ export interface ToolAction {
   integration: string;
   irreversible: boolean;
   costCents: number;
-  simulate: (params: Record<string, string>) => string;
+  execute: (
+    params: Record<string, string>,
+    ctx: ToolContext
+  ) => Promise<ToolResult>;
 }
+
+/** Wrap a synchronous simulation as an adapter that never calls a real API. */
+function simulated(
+  fn: (params: Record<string, string>) => string
+): ToolAction["execute"] {
+  return async (params) => ({ summary: fn(params), simulated: true });
+}
+
+// ---------------------------------------------------------------------------
+// Real adapter: Web Search (Tavily)
+//
+// Key-based, no OAuth — the credential is a process-wide API key resolved from
+// TAVILY_API_KEY. When absent, resolveCredential returns null and we simulate.
+
+async function webSearch(
+  params: Record<string, string>,
+  ctx: ToolContext
+): Promise<ToolResult> {
+  const query = params.query ?? "";
+  if (!ctx.credential) {
+    return {
+      summary: `Researched "${query}" across 8 sources; key findings extracted.`,
+      simulated: true,
+    };
+  }
+  try {
+    const res = await fetch("https://api.tavily.com/search", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        api_key: ctx.credential.accessToken,
+        query,
+        search_depth: "basic",
+        include_answer: true,
+        max_results: 5,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Tavily ${res.status}: ${body.slice(0, 200)}`);
+    }
+    const data = (await res.json()) as {
+      answer?: string;
+      results?: { title: string; url: string }[];
+    };
+    const count = data.results?.length ?? 0;
+    const answer = data.answer?.trim() || `No synthesized answer for "${query}".`;
+    return {
+      summary: `${answer} (${count} source${count === 1 ? "" : "s"})`,
+      simulated: false,
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "unknown error";
+    return { summary: `Web search failed: ${msg}`, simulated: false };
+  }
+}
+
+// ---------------------------------------------------------------------------
 
 const actions: ToolAction[] = [
   // Gmail
@@ -24,8 +102,10 @@ const actions: ToolAction[] = [
     integration: "Gmail",
     irreversible: false,
     costCents: 2,
-    simulate: (p) =>
-      `Found 3 messages matching "${p.query ?? ""}" — newest from ${p.from ?? "a prospective client"}.`,
+    execute: simulated(
+      (p) =>
+        `Found 3 messages matching "${p.query ?? ""}" — newest from ${p.from ?? "a prospective client"}.`
+    ),
   },
   {
     action: "gmail.create_draft",
@@ -33,7 +113,9 @@ const actions: ToolAction[] = [
     integration: "Gmail",
     irreversible: false,
     costCents: 4,
-    simulate: (p) => `Draft created: "${p.subject ?? "Re: your inquiry"}" (saved to Drafts, not sent).`,
+    execute: simulated(
+      (p) => `Draft created: "${p.subject ?? "Re: your inquiry"}" (saved to Drafts, not sent).`
+    ),
   },
   {
     action: "gmail.send_email",
@@ -41,7 +123,7 @@ const actions: ToolAction[] = [
     integration: "Gmail",
     irreversible: true,
     costCents: 4,
-    simulate: (p) => `Email sent to ${p.to ?? "recipient"}: "${p.subject ?? ""}".`,
+    execute: simulated((p) => `Email sent to ${p.to ?? "recipient"}: "${p.subject ?? ""}".`),
   },
   // Google Calendar
   {
@@ -50,7 +132,7 @@ const actions: ToolAction[] = [
     integration: "Google Calendar",
     irreversible: false,
     costCents: 1,
-    simulate: () => "Next 7 days: 4 client meetings, 1 internal review.",
+    execute: simulated(() => "Next 7 days: 4 client meetings, 1 internal review."),
   },
   {
     action: "calendar.create_event",
@@ -58,8 +140,10 @@ const actions: ToolAction[] = [
     integration: "Google Calendar",
     irreversible: true,
     costCents: 2,
-    simulate: (p) =>
-      `Held "${p.title ?? "Consultation"}" on the calendar with an invite drafted for ${p.with ?? "the client"}.`,
+    execute: simulated(
+      (p) =>
+        `Held "${p.title ?? "Consultation"}" on the calendar with an invite drafted for ${p.with ?? "the client"}.`
+    ),
   },
   // Slack
   {
@@ -68,7 +152,7 @@ const actions: ToolAction[] = [
     integration: "Slack",
     irreversible: false,
     costCents: 1,
-    simulate: (p) => `Read last 50 messages in #${p.channel ?? "general"}.`,
+    execute: simulated((p) => `Read last 50 messages in #${p.channel ?? "general"}.`),
   },
   {
     action: "slack.post_message",
@@ -76,7 +160,7 @@ const actions: ToolAction[] = [
     integration: "Slack",
     irreversible: true,
     costCents: 2,
-    simulate: (p) => `Posted summary to #${p.channel ?? "general"}.`,
+    execute: simulated((p) => `Posted summary to #${p.channel ?? "general"}.`),
   },
   // Google Drive
   {
@@ -85,7 +169,7 @@ const actions: ToolAction[] = [
     integration: "Google Drive",
     irreversible: false,
     costCents: 2,
-    simulate: (p) => `Found 5 documents matching "${p.query ?? ""}".`,
+    execute: simulated((p) => `Found 5 documents matching "${p.query ?? ""}".`),
   },
   {
     action: "drive.read_file",
@@ -93,7 +177,7 @@ const actions: ToolAction[] = [
     integration: "Google Drive",
     irreversible: false,
     costCents: 2,
-    simulate: (p) => `Read "${p.name ?? "document"}" (12 pages) into working context.`,
+    execute: simulated((p) => `Read "${p.name ?? "document"}" (12 pages) into working context.`),
   },
   {
     action: "drive.create_doc",
@@ -101,16 +185,16 @@ const actions: ToolAction[] = [
     integration: "Google Drive",
     irreversible: false,
     costCents: 5,
-    simulate: (p) => `Created "${p.name ?? "New document"}" in the workspace folder.`,
+    execute: simulated((p) => `Created "${p.name ?? "New document"}" in the workspace folder.`),
   },
-  // Web search
+  // Web search — real adapter (Tavily), simulated fallback when unconnected.
   {
     action: "websearch.search",
     label: "Web search",
     integration: "Web Search",
     irreversible: false,
     costCents: 3,
-    simulate: (p) => `Researched "${p.query ?? ""}" across 8 sources; key findings extracted.`,
+    execute: webSearch,
   },
   // HubSpot
   {
@@ -119,7 +203,7 @@ const actions: ToolAction[] = [
     integration: "HubSpot",
     irreversible: false,
     costCents: 2,
-    simulate: (p) => `Found 12 contacts matching "${p.query ?? "active clients"}".`,
+    execute: simulated((p) => `Found 12 contacts matching "${p.query ?? "active clients"}".`),
   },
   {
     action: "hubspot.update_record",
@@ -127,7 +211,9 @@ const actions: ToolAction[] = [
     integration: "HubSpot",
     irreversible: true,
     costCents: 3,
-    simulate: (p) => `Updated ${p.record ?? "contact record"}: ${p.change ?? "field corrected"}.`,
+    execute: simulated(
+      (p) => `Updated ${p.record ?? "contact record"}: ${p.change ?? "field corrected"}.`
+    ),
   },
   {
     action: "hubspot.create_deal",
@@ -135,7 +221,7 @@ const actions: ToolAction[] = [
     integration: "HubSpot",
     irreversible: true,
     costCents: 3,
-    simulate: (p) => `Created deal "${p.name ?? "New opportunity"}" in pipeline.`,
+    execute: simulated((p) => `Created deal "${p.name ?? "New opportunity"}" in pipeline.`),
   },
 ];
 

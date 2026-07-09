@@ -77,8 +77,16 @@ its tasks, then look at its Role & permissions and Work record. Try:
   gate/receipt flow is exercised end-to-end without API keys. The planner in
   `src/lib/engine.ts` (`runTask`) is where model-driven planning (AI SDK)
   replaces the scripted plan.
-- **Tool adapters** — simulated in `src/lib/tools.ts`; real OAuth-backed
-  integrations replace each `simulate` function without touching the gate.
+- **Tool adapters** — each skill in `src/lib/tools.ts` is an async adapter with
+  an `execute(params, ctx)`. When a live credential for the action's provider
+  resolves (`src/lib/connections.ts`), the adapter calls the real API; otherwise
+  it falls back to a labeled simulation (`simulated: true`, shown as the absence
+  of a **Live** badge). **Web Search is real today** — set `TAVILY_API_KEY` and
+  the `websearch.search` skill runs live. Google (Gmail/Calendar/Drive), Slack,
+  and HubSpot are wired to the same seam but still simulate until their OAuth
+  connections exist: each needs an app registration, an OAuth callback route
+  that writes a `Connection`, and a Connections UI. The delegation gate runs
+  before `execute` and is untouched by any of this.
 - **Auth & multi-tenancy** — single seeded workspace; the store
   (`src/lib/store.ts`) is a JSON file behind a two-function interface, swap for
   Postgres + real auth without touching the trust layer.
