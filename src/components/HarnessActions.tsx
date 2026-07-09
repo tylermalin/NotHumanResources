@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { trustedFetch } from "./neus/session";
 
 export function RunTaskButton({
   harnessId,
@@ -20,7 +21,7 @@ export function RunTaskButton({
   async function run() {
     setBusy(true);
     setError(null);
-    const res = await fetch(`/api/harnesses/${harnessId}/run`, {
+    const res = await trustedFetch(`/api/harnesses/${harnessId}/run`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ taskId }),
@@ -60,7 +61,7 @@ export function ApproveStepButton({
 
   async function approve() {
     setBusy(true);
-    await fetch(`/api/runs/${runId}/approve`, {
+    await trustedFetch(`/api/runs/${runId}/approve`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ stepIndex }),
@@ -93,7 +94,7 @@ export function RevokeButton({ harnessId }: { harnessId: string }) {
       return;
     }
     setBusy(true);
-    await fetch(`/api/harnesses/${harnessId}/revoke`, { method: "POST" });
+    await trustedFetch(`/api/harnesses/${harnessId}/revoke`, { method: "POST" });
     setBusy(false);
     router.refresh();
   }

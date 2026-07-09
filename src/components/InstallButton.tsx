@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { trustedFetch } from "./neus/session";
 
 export function InstallButton({ slug }: { slug: string }) {
   const router = useRouter();
@@ -8,7 +9,7 @@ export function InstallButton({ slug }: { slug: string }) {
 
   async function install() {
     setBusy(true);
-    const res = await fetch("/api/harnesses", {
+    const res = await trustedFetch("/api/harnesses", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ slug }),
