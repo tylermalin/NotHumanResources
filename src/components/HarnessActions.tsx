@@ -40,11 +40,11 @@ export function RunTaskButton({
       <button
         onClick={run}
         disabled={busy || disabled}
-        className="rounded-md bg-zinc-900 dark:bg-zinc-100 px-3 py-1.5 text-sm font-medium text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-300 disabled:opacity-50"
+        className="rounded-sm bg-accent px-3 py-1.5 text-sm font-semibold uppercase tracking-wide text-base hover:bg-accent-press disabled:opacity-40"
       >
         {busy ? "On it…" : `Assign: ${taskLabel}`}
       </button>
-      {error && <span className="text-sm text-red-600">{error}</span>}
+      {error && <span className="text-sm text-fault">{error}</span>}
     </div>
   );
 }
@@ -74,7 +74,7 @@ export function ApproveStepButton({
     <button
       onClick={approve}
       disabled={busy}
-      className="rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950 px-2.5 py-1 text-xs font-medium text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900 disabled:opacity-50"
+      className="rounded-sm border border-pending/40 bg-pending/10 px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-pending hover:bg-pending/20 disabled:opacity-40"
     >
       {busy ? "Approving…" : "Approve & run"}
     </button>
@@ -103,7 +103,7 @@ export function RevokeButton({ harnessId }: { harnessId: string }) {
     <button
       onClick={revoke}
       disabled={busy}
-      className="rounded-md border border-red-300 dark:border-red-900 px-3 py-1.5 text-sm font-medium text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-50"
+      className="rounded-sm border border-fault/40 px-3 py-1.5 text-xs font-medium uppercase tracking-wide text-fault hover:bg-fault/10 disabled:opacity-40"
     >
       {busy ? "Offboarding…" : "Offboard"}
     </button>
@@ -133,13 +133,13 @@ export function VerifyChainButton({ harnessId }: { harnessId: string }) {
       <button
         onClick={verifyAll}
         disabled={busy}
-        className="rounded-md border border-zinc-300 dark:border-zinc-700 px-3 py-1.5 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-50"
+        className="rounded-sm border border-hairline px-3 py-1.5 text-xs font-medium uppercase tracking-wide hover:bg-inset disabled:opacity-40"
       >
         {busy ? "Verifying…" : "Verify work record"}
       </button>
       {result && (
         <span
-          className={`text-sm ${valid ? "text-emerald-600" : "text-red-600"}`}
+          className={`text-sm ${valid ? "text-accent" : "text-fault"}`}
         >
           {valid ? "✓ " : "✗ "}
           {result}

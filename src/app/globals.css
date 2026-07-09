@@ -1,26 +1,35 @@
 @import "tailwindcss";
+/* Force the terminal aesthetic regardless of OS theme; dark: utilities in
+   not-yet-restyled pages still resolve, so nothing renders light-on-dark. */
+@custom-variant dark (&:where(.dark, .dark *));
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  /* (not)HumanResources — "Agent Console" design system */
+  --color-base: #111215; /* bg-base / terminal-black */
+  --color-surface: #1e1f24; /* bg-surface / black-raise-2 */
+  --color-inset: #26272e; /* bg-inset / black-raise-3 */
+  --color-raise: #17181c; /* black-raise-1 */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-accent: #00ff66; /* kinetic-green */
+  --color-accent-press: #00cc52; /* green-dim */
+  --color-ghost: rgba(0, 255, 102, 0.12); /* green-ghost */
+
+  --color-pending: #ffb000; /* amber-pending */
+  --color-fault: #ff3b47; /* red-fault */
+
+  --color-hairline: #2e313a; /* border-hairline / slate-dim */
+  --color-log: #4a4d5a; /* border-log / slate-muted */
+  --color-muted: #4a4d5a; /* slate-muted (dim text) */
+  --color-ink: #ffffff; /* absolute-white */
+
+  --font-display: var(--font-archivo-black), "Archivo Black", system-ui,
+    sans-serif;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-base);
+  color: var(--color-ink);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
