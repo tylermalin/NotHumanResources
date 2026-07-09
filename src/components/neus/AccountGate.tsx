@@ -41,12 +41,13 @@ export function AccountGate({ children }: { children: React.ReactNode }) {
   }, []);
 
   function startSignIn() {
-    if (!GATE_ID) return;
     setStarting(true);
-    // returnUrl is where NEUS sends the browser back; the gate's own
-    // successReturnUrl governs if it's locked server-side.
+    // Site sign-in uses NEUS intent=login — a clean session sign-in that
+    // redirects back to returnUrl with the login receipt. The Google-org gate
+    // (GATE_ID) is reserved for per-agent credentialing at hire time, not site
+    // access; a login receipt wouldn't satisfy that gate anyway.
     const url = getHostedCheckoutUrl({
-      gateId: GATE_ID,
+      intent: "login",
       returnUrl: window.location.href,
     });
     window.location.assign(url);

@@ -54,21 +54,20 @@ export async function checkEligibility(
     return { ok: false, reason: "no-receipt", walletAddress: null };
   }
   try {
-    // 1. Bind the receipt to a wallet we didn't let the client choose.
+    // Site sign-in is a NEUS login (intent=login), not a gate proof — so we
+    // confirm the receipt is a real, verified NEUS receipt bound to a wallet we
+    // didn't let the client choose. (The Google-org gate is enforced per-agent
+    // at hire time, not for site access.)
     const proof = await client.getProof(qHash);
     const address = proof.data?.walletAddress ?? null;
-    if (!proof.success || !address) {
+    const verified = proof.data?.status === "verified";
+    if (!proof.success || !address || !verified) {
       return { ok: false, reason: "receipt-not-found", walletAddress: null };
     }
-    // 2. Confirm that wallet still passes every requirement of our gate.
-    const check = await client.gateCheck({ gateId: GATE_ID, address });
-    if (check.data?.gate?.allRequiredSatisfied === true) {
-      return { ok: true, reason: null, walletAddress: address };
-    }
-    return { ok: false, reason: "gate-not-satisfied", walletAddress: address };
+    return { ok: true, reason: null, walletAddress: address };
   } catch (err) {
-    console.error("[NHR] gate check error:", err);
-    return { ok: false, reason: "gate-check-error", walletAddress: null };
+    console.error("[NHR] sign-in check error:", err);
+    return { ok: false, reason: "check-error", walletAddress: null };
   }
 }
 

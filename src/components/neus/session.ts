@@ -47,18 +47,43 @@ export function hasSession(s: NeusSession): boolean {
  * return we read that qHash, save it, and strip it from the address bar so a
  * refresh doesn't re-trigger. Returns the qHash if one was consumed.
  */
+const QHASH_RE = /^0x[0-9a-fA-F]{64}$/;
+
 export function consumeReturnedQHash(): string | null {
   if (typeof window === "undefined") return null;
   const url = new URL(window.location.href);
-  // NEUS returns the receipt as ?qHash=…; also tolerate a #qHash=… fragment.
-  const fromQuery = url.searchParams.get("qHash");
-  const fromHash = new URLSearchParams(
+  const search = new URLSearchParams(url.search);
+  const hash = new URLSearchParams(
     url.hash.startsWith("#") ? url.hash.slice(1) : url.hash
-  ).get("qHash");
-  const qHash = fromQuery ?? fromHash;
-  if (!qHash) return null;
+  );
+  // NEUS may return the receipt under different param names depending on the
+  // flow (qHash, proof, receipt, …). Rather than guess, accept any param whose
+  // value is shaped like a receipt id (0x + 64 hex).
+  let qHash: string | null = null;
+  let matchedKey: string | null = null;
+  const allParams = [...search, ...hash];
+  for (const [key, value] of allParams) {
+    if (QHASH_RE.test(value)) {
+      qHash = value;
+      matchedKey = key;
+      break;
+    }
+  }
+  if (!qHash) {
+    if (allParams.length > 0) {
+      // Callback carried params but none looked like a receipt id — log them so
+      // we can see what the NEUS login flow actually returns.
+      console.warn(
+        "[NHR] sign-in return: no receipt-shaped param found. Callback params:",
+        allParams
+      );
+    }
+    return null;
+  }
+  console.log("[NHR] sign-in return: captured receipt from", matchedKey);
   saveVerified(qHash);
-  url.searchParams.delete("qHash");
+  if (matchedKey) search.delete(matchedKey);
+  url.search = search.toString();
   url.hash = "";
   window.history.replaceState({}, "", url.toString());
   return qHash;
@@ -87,11 +112,7 @@ export async function trustedFetch(
       .json()
       .then((b: { reason?: string }) => b?.reason)
       .catch(() => null);
-    if (
-      reason === "no-receipt" ||
-      reason === "receipt-not-found" ||
-      reason === "gate-not-satisfied"
-    ) {
+    if (reason === "no-receipt" || reason === "receipt-not-found") {
       clearSession();
     }
   }
