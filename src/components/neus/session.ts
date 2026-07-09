@@ -39,3 +39,61 @@ export function clearSession(): void {
 export function hasSession(s: NeusSession): boolean {
   return Boolean(s.qHash) || s.demo;
 }
+
+/**
+ * Complete sign-in from a redirect-delivery gate. This gate delivers the
+ * receipt by redirecting the browser to its successReturnUrl with the qHash in
+ * the URL (rather than the popup postMessage the widget also supports). On
+ * return we read that qHash, save it, and strip it from the address bar so a
+ * refresh doesn't re-trigger. Returns the qHash if one was consumed.
+ */
+export function consumeReturnedQHash(): string | null {
+  if (typeof window === "undefined") return null;
+  const url = new URL(window.location.href);
+  // NEUS returns the receipt as ?qHash=…; also tolerate a #qHash=… fragment.
+  const fromQuery = url.searchParams.get("qHash");
+  const fromHash = new URLSearchParams(
+    url.hash.startsWith("#") ? url.hash.slice(1) : url.hash
+  ).get("qHash");
+  const qHash = fromQuery ?? fromHash;
+  if (!qHash) return null;
+  saveVerified(qHash);
+  url.searchParams.delete("qHash");
+  url.hash = "";
+  window.history.replaceState({}, "", url.toString());
+  return qHash;
+}
+
+/**
+ * fetch() for trusted (state-changing) actions: attaches the receipt id so the
+ * server can re-confirm eligibility (see lib/neus.ts). If the server rejects
+ * the receipt (401), the local session is cleared so the account gate prompts a
+ * fresh verification instead of the UI silently doing nothing.
+ */
+export async function trustedFetch(
+  input: string,
+  init: RequestInit = {}
+): Promise<Response> {
+  const headers = new Headers(init.headers);
+  const { qHash } = getSession();
+  if (qHash) headers.set("x-neus-qhash", qHash);
+  const res = await fetch(input, { ...init, headers });
+  if (res.status === 401) {
+    // Only force re-verification when the receipt itself is the problem —
+    // not when the server merely couldn't complete the check (transient),
+    // which would otherwise bounce a genuinely signed-in user in a loop.
+    const reason = await res
+      .clone()
+      .json()
+      .then((b: { reason?: string }) => b?.reason)
+      .catch(() => null);
+    if (
+      reason === "no-receipt" ||
+      reason === "receipt-not-found" ||
+      reason === "gate-not-satisfied"
+    ) {
+      clearSession();
+    }
+  }
+  return res;
+}

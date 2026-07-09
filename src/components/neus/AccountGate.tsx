@@ -1,57 +1,56 @@
 "use client";
 // Account setup for (not)Human Resources issues through NEUS.
 //
-// VerifyGate owns the whole flow — it reuses an existing receipt when the
-// visitor has one and opens Hosted Verify only when needed. The published
-// gate (created at neus.network → Profile → Portals) owns the checks,
-// pricing, and checkout; this app never implements verifier logic. End
-// users never need a NEUS account or API key.
-import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
+// This gate delivers its receipt by REDIRECT (artifact type redirect_url with a
+// successReturnUrl), so we drive Hosted Verify as a full-page redirect rather
+// than the popup widget: the popup waits for a postMessage this gate never
+// sends. We send the browser to Hosted Verify, the user completes the gate's
+// checks on NEUS (no verifier logic here, no password shared), and NEUS
+// redirects back to successReturnUrl with the receipt (qHash) in the URL, which
+// consumeReturnedQHash() picks up on return. End users never need a NEUS
+// account or API key.
+//
+// NOTE: the gate's successReturnUrl must match the origin you're testing on. In
+// production that's https://nothumanresources.xyz/hire; for local dev, point it
+// at http://localhost:3000/hire in the NEUS portal (Profile → Portals).
+import { getHostedCheckoutUrl } from "@neus/sdk";
+import { useEffect, useState } from "react";
 import {
   SESSION_EVENT,
+  consumeReturnedQHash,
   getSession,
   hasSession,
   saveDemo,
-  saveVerified,
 } from "./session";
-
-const VerifyGate = dynamic(
-  () => import("@neus/sdk/widgets").then((m) => m.VerifyGate),
-  { ssr: false }
-);
 
 const GATE_ID = process.env.NEXT_PUBLIC_NEUS_GATE_ID;
 
 export function AccountGate({ children }: { children: React.ReactNode }) {
   // null = not yet hydrated; avoids a flash of the wrong state on load.
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
-  const [gateError, setGateError] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
 
   useEffect(() => {
+    // If we've just been redirected back from Hosted Verify with a receipt in
+    // the URL, complete sign-in from it before reading session state.
+    consumeReturnedQHash();
     const sync = () => setSignedIn(hasSession(getSession()));
     sync();
     window.addEventListener(SESSION_EVENT, sync);
     return () => window.removeEventListener(SESSION_EVENT, sync);
   }, []);
 
-  const handleVerified = useCallback(
-    (result: { qHash: string }) => {
-      console.log("[NHR] VerifyGate onVerified:", result);
-      setGateError(null);
-      saveVerified(result.qHash);
-    },
-    []
-  );
-
-  const handleError = useCallback((error: Error) => {
-    console.error("[NHR] VerifyGate onError:", error);
-    setGateError(error?.message ?? "Unknown verification error");
-  }, []);
-
-  const handleStateChange = useCallback((state: string) => {
-    console.log("[NHR] VerifyGate state →", state);
-  }, []);
+  function startSignIn() {
+    if (!GATE_ID) return;
+    setStarting(true);
+    // returnUrl is where NEUS sends the browser back; the gate's own
+    // successReturnUrl governs if it's locked server-side.
+    const url = getHostedCheckoutUrl({
+      gateId: GATE_ID,
+      returnUrl: window.location.href,
+    });
+    window.location.assign(url);
+  }
 
   if (signedIn === null) {
     return (
@@ -73,23 +72,13 @@ export function AccountGate({ children }: { children: React.ReactNode }) {
         </p>
         <div className="mt-6 flex justify-center">
           {GATE_ID ? (
-            <div className="w-full">
-              <VerifyGate
-                gateId={GATE_ID}
-                buttonText="Verify & get started"
-                onVerified={handleVerified}
-                onError={handleError}
-                onStateChange={handleStateChange}
-              />
-              {gateError && (
-                <div className="mt-3 rounded-md border border-red-300 dark:border-red-900 bg-red-50 dark:bg-red-950 p-3 text-left text-sm text-red-900 dark:text-red-200">
-                  <div className="font-medium">Verification error</div>
-                  <p className="mt-1 text-xs font-mono break-all">
-                    {gateError}
-                  </p>
-                </div>
-              )}
-            </div>
+            <button
+              onClick={startSignIn}
+              disabled={starting}
+              className="w-full rounded-md bg-zinc-900 dark:bg-zinc-100 px-3 py-2.5 text-sm font-medium text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-300 disabled:opacity-50"
+            >
+              {starting ? "Opening NEUS…" : "Verify & get started"}
+            </button>
           ) : (
             <div className="w-full text-left">
               <div className="rounded-md border border-amber-300 dark:border-amber-900 bg-amber-50 dark:bg-amber-950 p-4 text-sm text-amber-900 dark:text-amber-200">
