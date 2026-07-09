@@ -13,6 +13,7 @@ import {
 } from "./trust";
 import { getAction } from "./tools";
 import { providerForAction, resolveCredential } from "./connections";
+import { createAgent } from "./neus-agents";
 import type { DB, InstalledHarness, Run, RunStep } from "./types";
 
 /**
@@ -33,6 +34,7 @@ export async function installHarness(
   if (existing) return existing;
 
   const { identity, privateKeyPem } = issueIdentity();
+  const delegation = grantDelegation(identity.agentId, spec.delegationPreset);
   const harness: InstalledHarness = {
     id: uid("hrn"),
     slug: spec.slug,
@@ -44,13 +46,35 @@ export async function installHarness(
     status: "active",
     identity,
     privateKeyPem,
-    delegation: grantDelegation(identity.agentId, spec.delegationPreset),
+    delegation,
     authorization: {
       qHash: auth.qHash,
       walletAddress: auth.walletAddress,
       authorizedAt: new Date().toISOString(),
     },
   };
+
+  // Register the real NEUS Trusted Agent — writes agent-identity +
+  // agent-delegation proofs to the controller's profile, so the scoped actions
+  // are an enforceable NEUS delegation. Non-fatal: if NEUS can't complete it
+  // (no controller wallet, or a step the session can't sign), we still install
+  // with the local identity and log it.
+  if (auth.walletAddress) {
+    try {
+      harness.neusAgent = await createAgent({
+        agentId: `nhr-${spec.slug}`,
+        controllerWallet: auth.walletAddress,
+        agentLabel: spec.name,
+        description: spec.description,
+        instructions: spec.systemPrompt,
+        preset: spec.delegationPreset,
+        expiresAt: delegation.expiresAt,
+      });
+    } catch (err) {
+      console.error("[NHR] neus_agent_create failed:", err);
+    }
+  }
+
   db.harnesses.push(harness);
   await writeDB(db);
   return harness;

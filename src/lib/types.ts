@@ -47,6 +47,19 @@ export interface AgentAuthorization {
   authorizedAt: string;
 }
 
+/**
+ * Reference to the real NEUS Trusted Agent backing this harness — the
+ * agent-identity + agent-delegation proofs written to the controller's NEUS
+ * profile at hire time (see lib/neus-agents.ts). Optional: absent for local
+ * demo hires or if NEUS agent creation was unavailable.
+ */
+export interface NeusAgentRef {
+  agentId: string;
+  agentWallet: string;
+  identityQHash: string;
+  delegationQHash: string;
+}
+
 export interface InstalledHarness {
   id: string;
   slug: string;
@@ -61,6 +74,8 @@ export interface InstalledHarness {
   privateKeyPem: string;
   delegation: Delegation;
   authorization?: AgentAuthorization;
+  /** The real NEUS agent this harness maps to, when one was created. */
+  neusAgent?: NeusAgentRef;
 }
 
 /**

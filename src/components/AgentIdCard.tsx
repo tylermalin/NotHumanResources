@@ -74,6 +74,15 @@ export function AgentIdCard({
             <div className="mt-2 inline-block rounded-sm border border-accent/20 bg-ghost px-2 py-1 font-mono text-xs text-accent">
               {harness.identity.agentId}
             </div>
+            {harness.neusAgent && (
+              <div className="mt-2 flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent shadow-[0_0_6px_#00ff66]" />
+                NEUS Trusted Agent · delegation{" "}
+                <span className="font-mono normal-case text-accent">
+                  {harness.neusAgent.delegationQHash.slice(0, 10)}…
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
