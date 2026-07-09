@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Archivo_Black } from "next/font/google";
-import Link from "next/link";
-import { SessionBadge } from "@/components/neus/SessionBadge";
+import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -43,33 +42,7 @@ export default function RootLayout({
       className={`dark ${geistSans.variable} ${geistMono.variable} ${archivoBlack.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-base text-ink font-sans">
-        <header className="border-b border-hairline bg-surface">
-          <nav className="mx-auto flex max-w-5xl items-center gap-6 px-6 py-3.5">
-            <Link
-              href="/"
-              className="flex items-center gap-2 font-display text-sm uppercase tracking-[0.12em]"
-            >
-              <span className="text-accent">(!)</span>
-              <span>
-                <span className="text-accent">(not)</span>Human Resources
-              </span>
-            </Link>
-            <div className="flex flex-1 items-center gap-5 text-xs uppercase tracking-wider text-muted">
-              <Link href="/how-it-works" className="hover:text-ink">
-                How it works
-              </Link>
-              <Link href="/hire" className="hover:text-ink">
-                Hire
-              </Link>
-              <Link href="/workspace" className="hover:text-ink">
-                Roster
-              </Link>
-              <span className="ml-auto normal-case tracking-normal">
-                <SessionBadge />
-              </span>
-            </div>
-          </nav>
-        </header>
+        <SiteHeader />
         <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">
           {children}
         </main>
