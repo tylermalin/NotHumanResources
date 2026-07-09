@@ -7,7 +7,7 @@
 // pricing, and checkout; this app never implements verifier logic. End
 // users never need a NEUS account or API key.
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   SESSION_EVENT,
   getSession,
@@ -26,12 +26,31 @@ const GATE_ID = process.env.NEXT_PUBLIC_NEUS_GATE_ID;
 export function AccountGate({ children }: { children: React.ReactNode }) {
   // null = not yet hydrated; avoids a flash of the wrong state on load.
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const [gateError, setGateError] = useState<string | null>(null);
 
   useEffect(() => {
     const sync = () => setSignedIn(hasSession(getSession()));
     sync();
     window.addEventListener(SESSION_EVENT, sync);
     return () => window.removeEventListener(SESSION_EVENT, sync);
+  }, []);
+
+  const handleVerified = useCallback(
+    (result: { qHash: string }) => {
+      console.log("[NHR] VerifyGate onVerified:", result);
+      setGateError(null);
+      saveVerified(result.qHash);
+    },
+    []
+  );
+
+  const handleError = useCallback((error: Error) => {
+    console.error("[NHR] VerifyGate onError:", error);
+    setGateError(error?.message ?? "Unknown verification error");
+  }, []);
+
+  const handleStateChange = useCallback((state: string) => {
+    console.log("[NHR] VerifyGate state →", state);
   }, []);
 
   if (signedIn === null) {
@@ -54,13 +73,23 @@ export function AccountGate({ children }: { children: React.ReactNode }) {
         </p>
         <div className="mt-6 flex justify-center">
           {GATE_ID ? (
-            <VerifyGate
-              gateId={GATE_ID}
-              buttonText="Verify & get started"
-              onVerified={(result: { qHash: string }) => {
-                saveVerified(result.qHash);
-              }}
-            />
+            <div className="w-full">
+              <VerifyGate
+                gateId={GATE_ID}
+                buttonText="Verify & get started"
+                onVerified={handleVerified}
+                onError={handleError}
+                onStateChange={handleStateChange}
+              />
+              {gateError && (
+                <div className="mt-3 rounded-md border border-red-300 dark:border-red-900 bg-red-50 dark:bg-red-950 p-3 text-left text-sm text-red-900 dark:text-red-200">
+                  <div className="font-medium">Verification error</div>
+                  <p className="mt-1 text-xs font-mono break-all">
+                    {gateError}
+                  </p>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="w-full text-left">
               <div className="rounded-md border border-amber-300 dark:border-amber-900 bg-amber-50 dark:bg-amber-950 p-4 text-sm text-amber-900 dark:text-amber-200">
