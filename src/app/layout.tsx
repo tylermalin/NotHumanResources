@@ -19,6 +19,11 @@ export const metadata: Metadata = {
   description:
     "Hire accountable AI workers — verified identity, a scoped role, and a tamper-evident work record. On the job in under five minutes.",
   metadataBase: new URL("https://nothumanresources.xyz"),
+  openGraph: {
+    title: "(not)Human Resources",
+    description: "Your HR department for AI agents.",
+    images: ["/og.png"],
+  },
 };
 
 export default function RootLayout({
