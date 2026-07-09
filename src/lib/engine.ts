@@ -13,7 +13,7 @@ import {
 } from "./trust";
 import { getAction } from "./tools";
 import { providerForAction, resolveCredential } from "./connections";
-import { createAgent } from "./neus-agents";
+import { createAgent, revokeAgent } from "./neus-agents";
 import type { DB, InstalledHarness, Run, RunStep } from "./types";
 
 /**
@@ -215,6 +215,11 @@ export async function revokeHarness(harnessId: string): Promise<void> {
   harness.status = "revoked";
   harness.identity.status = "revoked";
   harness.delegation.status = "revoked";
+  // Revoke the real NEUS agent too, so its delegation dies on NEUS — not just
+  // at our local gate. Best-effort; offboarding always completes locally.
+  if (harness.neusAgent) {
+    await revokeAgent(harness.neusAgent);
+  }
   issueReceipt(db, harness, {
     runId: null,
     action: "platform.revoke",

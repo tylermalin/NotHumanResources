@@ -11,6 +11,7 @@ import type { DelegationPreset } from "./trust";
 import type { NeusAgentRef } from "./types";
 
 const MCP_URL = "https://mcp.neus.network/mcp";
+const API_URL = "https://api.neus.network";
 const CHAIN = "eip155:84532"; // Base Sepolia — matches the login did:pkh chain.
 
 /** One JSON-RPC tools/call against the NEUS MCP server; parses the SSE reply. */
@@ -106,10 +107,60 @@ export async function createAgent(input: {
     identity?: { qHash?: string };
     delegation?: { qHash?: string };
   };
+  const identityQHash = proofs.identity?.qHash ?? "";
+  const delegationQHash = proofs.delegation?.qHash ?? "";
+  // NEUS auto-signs when the controller is the signed-in key owner
+  // (status: session_auto_complete). If it returns signatures_required (a step
+  // the session can't complete server-side — e.g. a non-owner controller), no
+  // proofs are issued; treat that as "not created" so we fall back to the local
+  // identity instead of storing an empty NEUS agent. The hosted "finish on
+  // NEUS" flow is where that case gets completed.
+  if (!identityQHash || !delegationQHash) {
+    throw new Error(
+      `neus_agent_create did not complete (status: ${String(r.status)})`
+    );
+  }
   return {
     agentId: agent.agentId ?? input.agentId,
     agentWallet: agent.agentWallet ?? input.controllerWallet,
-    identityQHash: proofs.identity?.qHash ?? "",
-    delegationQHash: proofs.delegation?.qHash ?? "",
+    identityQHash,
+    delegationQHash,
   };
+}
+
+/** Owner-revoke a single proof by qHash via the profile key. Best-effort. */
+async function revokeProof(qHash: string): Promise<boolean> {
+  const key = process.env.NEUS_API_KEY;
+  if (!key || !qHash) return false;
+  try {
+    const res = await fetch(`${API_URL}/api/v1/proofs/revoke-self/${qHash}`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${key}`,
+        "content-type": "application/json",
+      },
+      body: "{}",
+    });
+    if (!res.ok) {
+      console.error(`[NHR] revoke proof ${qHash.slice(0, 10)}… → ${res.status}`);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[NHR] revoke proof error:", err);
+    return false;
+  }
+}
+
+/**
+ * Offboard the real NEUS agent: revoke both its delegation and identity proofs
+ * so it can no longer act on NEUS, not just at our local gate. Best-effort —
+ * revoking the delegation is what removes the agent's authority; the identity
+ * revoke is a follow-through. Never throws, so offboarding always completes.
+ */
+export async function revokeAgent(agent: NeusAgentRef): Promise<void> {
+  await Promise.allSettled([
+    revokeProof(agent.delegationQHash),
+    revokeProof(agent.identityQHash),
+  ]);
 }
