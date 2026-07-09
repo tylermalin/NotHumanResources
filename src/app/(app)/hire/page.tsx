@@ -5,8 +5,8 @@ import { InstallButton } from "@/components/InstallButton";
 
 export const dynamic = "force-dynamic";
 
-export default function LibraryPage() {
-  const db = readDB();
+export default async function LibraryPage() {
+  const db = await readDB();
   const installedBySlug = new Map(
     db.harnesses.filter((h) => h.status === "active").map((h) => [h.slug, h.id])
   );

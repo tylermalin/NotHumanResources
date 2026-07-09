@@ -10,7 +10,7 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> }
 ) {
   const { id } = await ctx.params;
-  const db = readDB();
+  const db = await readDB();
   const harness = db.harnesses.find((h) => h.id === id);
   if (!harness) {
     return NextResponse.json({ error: "Harness not found" }, { status: 404 });

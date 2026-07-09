@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@neus/sdk": "^1.3.1",
+    "@vercel/blob": "^2.6.1",
     "next": "16.2.10",
     "react": "19.2.4",
     "react-dom": "19.2.4"

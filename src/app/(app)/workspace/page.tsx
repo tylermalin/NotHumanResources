@@ -4,8 +4,8 @@ import { formatCents } from "@/lib/trust";
 
 export const dynamic = "force-dynamic";
 
-export default function WorkspacePage() {
-  const db = readDB();
+export default async function WorkspacePage() {
+  const db = await readDB();
   const active = db.harnesses.filter((h) => h.status === "active");
   const revoked = db.harnesses.filter((h) => h.status === "revoked");
   const allowed = db.receipts.filter((r) => r.decision === "allowed").length;
