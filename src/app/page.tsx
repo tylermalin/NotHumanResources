@@ -166,6 +166,21 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* Demo video */}
+        <section>
+          <div className={`${glass} mx-auto max-w-4xl overflow-hidden p-2 shadow-[0_0_60px_rgba(0,0,0,0.5)]`}>
+            <div className="relative aspect-video overflow-hidden rounded-[20px]">
+              <iframe
+                className="absolute inset-0 h-full w-full"
+                src="https://www.youtube.com/embed/FyXq8OYt-mY?rel=0"
+                title="(not)Human Resources — demo"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </section>
+
         {/* Problem matrix */}
         <section>
           <h2 className="text-center text-2xl font-semibold tracking-tight sm:text-3xl">
