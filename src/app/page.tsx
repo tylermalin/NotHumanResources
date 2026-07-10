@@ -168,6 +168,9 @@ export default function LandingPage() {
 
         {/* Demo video */}
         <section>
+          <div className="mb-5 text-center text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300/80">
+            Learn more
+          </div>
           <div className={`${glass} mx-auto max-w-4xl overflow-hidden p-2 shadow-[0_0_60px_rgba(0,0,0,0.5)]`}>
             <div className="relative aspect-video overflow-hidden rounded-[20px]">
               <iframe
